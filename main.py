@@ -1,4 +1,5 @@
 import xlrd
+import crawler
 from const import Base
 
 
@@ -10,6 +11,5 @@ def extract_url(path) -> dict:
 
 if __name__ == '__main__':
     url_list = extract_url(Base.EXCEL_PATH)
-    for i in url_list:
-        print(url_list[i])
-
+    for key in url_list:
+        crawler.start_crawler(key, url_list[key])
