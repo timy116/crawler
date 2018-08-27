@@ -2,27 +2,39 @@ import pdfhandler
 import requests
 import sys
 import time
-from log import SimpleLog
-from const import Base
-from selenium import webdriver
+import xlrd
 from bs4 import BeautifulSoup as bs
+from const import Base
+from datetime import date
+from simple_log import SimpleLog
+from selenium import webdriver
 from selenium.webdriver.support.ui import Select
 from selenium.common.exceptions import NoSuchElementException
-from request_info_creator import AgrstatOfficialInfoCreator as agroff
+from request_info_creator import AgrstatOfficialInfoCreator as agroff, BaseCreator
 
+# 西元轉民國年
+YEAR = date.today().year - 1911
 sl = SimpleLog()
 sl.set_level(20)
-kws_l = {}
+kws_d = {}
+kws_l = []
 
 
-def start_crawler(key, url):
+def start_crawler(key, url) -> None:
+    """
+    找到對應網址的 fn
+    :param key:關鍵字
+    :param url: 要解析的網址
+    :return: None
+    """
 
-    # 公務統計
-    if url.find('OfficialInformation') != -1:
-        extract_agrstat_official_info(key, url)
+    # if url.find('OfficialInformation') != -1:
+    #     extract_agrstat_official_info(key, url)
+
+    if url.find('swcb') != -1:
+        extract_swcb(key, url)
 
 
-# 爬取公務統計網站
 def extract_agrstat_official_info(key, url) -> None:
     """
     將關鍵字與網址傳進來，一次創建所有關鍵字的列表，
@@ -32,14 +44,14 @@ def extract_agrstat_official_info(key, url) -> None:
     :param url: 網址，解析用
     :return: None
     """
-    kws_l[key] = ''
+    kws_d[key] = ''
 
-    if len(kws_l) == agroff.KEYWORDS_LENTH:
+    if len(kws_d) == agroff.KEYWORDS_LENTH:
         creator = agroff()
         driver = get_web_driver()
         driver.get(url)
         while True:
-            if len(kws_l) == 0:
+            if len(kws_d) == 0:
                 driver.quit()
                 break
             try:
@@ -48,9 +60,9 @@ def extract_agrstat_official_info(key, url) -> None:
                 kws2 = soup.select('tr.AlternatingRow > td:nth-of-type(3)')
                 for k in kws1+kws2:
                     k = k.get_text().strip()
-                    if k in kws_l.keys():
+                    if k in kws_d.keys():
                         print('find', k, 'at page ', creator.get_page_index())
-                        del kws_l[k]
+                        del kws_d[k]
 
                 # 取得最後一個 td tag 的文字，用來判斷是否為最後一頁或者是更多頁面
                 flag = soup.select('tr.Pager > td > table > tbody > tr > td')[-1].get_text()
@@ -63,8 +75,8 @@ def extract_agrstat_official_info(key, url) -> None:
                 else:
                     if creator.get_page_index() == flag:
                         driver.quit()
-                        if len(kws_l) != 0:
-                            sl.info('not found keyword: ' + str(kws_l.keys()))
+                        if len(kws_d) != 0:
+                            sl.info('not found keyword: ' + str(kws_d.keys()))
                         print('Page end, ', creator.get_page_index(), 'pages')
                         break
                 creator.next_page()
@@ -78,6 +90,52 @@ def extract_agrstat_official_info(key, url) -> None:
                 t, v, tr = sys.exc_info()
                 sl.info('error occurred.\n' + str(t) + '\n' + str(v))
                 break
+
+
+def extract_swcb(key, url) -> None:
+    """
+    將關鍵字與網址傳進來，一次創建所有關鍵字的列表，
+    將網頁解析後取出網頁的關鍵字跟關鍵字列表比對，若存在則將 key 與 url 加到字典裡
+    並迭代開啟 excel 確認年度是否正確
+    :param key: 關鍵字
+    :param url: 網址，解析用
+    :return: None
+    """
+    # 創建關鍵字列表
+    kws_l.append(key)
+    if len(kws_l) == 3:
+        creator = BaseCreator()
+
+        k_f_l_d = {}
+        soup = bs(requests.get(url, headers=creator.headers).text, 'lxml')
+        # 頁面上的關鍵字
+        kw = [i.get_text() for i in soup.select('div.lastList > ul > li > a > h3')]
+        # 連結網址
+        file_link = ['https://www.swcb.gov.tw/Statistics/{}'.format(i.get('href'))
+                     for i in soup.select('div.lastList > ul > li > a')]
+        # 頁面關鍵字如果有在列表裡，則加到字典裡
+        for w, f in zip(kw, file_link):
+            if any((w.find(i) != -1) for i in kws_l):
+                k_f_l_d[w] = f
+
+        # 開啟 excel 並確認年度是否正確
+        def find_kw(link) -> int:
+            keyword = '中華民國' + str(YEAR-1) + '年度'
+            wb = xlrd.open_workbook(file_contents=requests.get(link).content)
+            sheet = wb.sheet_by_index(0)
+            for i in range(sheet.nrows):
+                for j in range(sheet.ncols):
+                    value = str(sheet.row_values(i)[j]).strip().replace(' ', '')
+                    if keyword in value:
+                        print(value)
+                        return True
+            return False
+        # 迭代搜尋關鍵字
+        for k, v in k_f_l_d.items():
+            if find_kw(v):
+                sl.info(k + ' 年度正確')
+            else:
+                sl.warning(k + ' 未在指定時間內上傳')
 
 
 def get_web_driver() -> webdriver:

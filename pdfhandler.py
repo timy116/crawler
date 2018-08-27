@@ -1,5 +1,5 @@
 import os
-from log import SimpleLog as sl
+from simple_log import SimpleLog as sl
 from pdfminer.pdfinterp import PDFPageInterpreter, PDFResourceManager, PDFDocument, PDFParser
 from pdfminer.converter import PDFPageAggregator
 from pdfminer.layout import LTTextBoxHorizontal, LAParams
