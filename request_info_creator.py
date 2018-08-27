@@ -46,7 +46,6 @@ class AgrstatOfficialInfoCreator(BaseCreator):
 
     def next_page(self):
         self.page_index += 1
-        return str(self.page_index)
 
     def get_page_index(self) -> str:
         return str(self.page_index)

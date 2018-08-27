@@ -10,6 +10,6 @@ def extract_url(path) -> dict:
 
 
 if __name__ == '__main__':
-    url_list = extract_url(Base.EXCEL_PATH)
-    for key in url_list:
-        crawler.start_crawler(key, url_list[key])
+    url_dict = extract_url(Base.EXCEL_PATH)
+    for k, v in url_dict.items():
+        crawler.start_crawler(k, v)
