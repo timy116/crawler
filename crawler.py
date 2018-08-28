@@ -1,21 +1,17 @@
 import pdfhandler
 import requests
 import sys
-import time
 import xlrd
 from bs4 import BeautifulSoup as bs
 from const import Base
 from datetime import date
-from simple_log import SimpleLog
+from log import log
 from selenium import webdriver
 from selenium.webdriver.support.ui import Select
-from selenium.common.exceptions import NoSuchElementException
 from request_info_creator import AgrstatOfficialInfoCreator as agroff, BaseCreator
 
 # 西元轉民國年
 YEAR = date.today().year - 1911
-sl = SimpleLog()
-sl.set_level(20)
 kws_d = {}
 kws_l = []
 
@@ -31,8 +27,11 @@ def start_crawler(key, url) -> None:
     # if url.find('OfficialInformation') != -1:
     #     extract_agrstat_official_info(key, url)
 
-    if url.find('swcb') != -1:
-        extract_swcb(key, url)
+    # if url.find('swcb') != -1:
+    #     extract_swcb(key, url)
+
+    if url.find('0000575') != -1:
+        extract_forest(key, url)
 
 
 def extract_agrstat_official_info(key, url) -> None:
@@ -76,7 +75,7 @@ def extract_agrstat_official_info(key, url) -> None:
                     if creator.get_page_index() == flag:
                         driver.quit()
                         if len(kws_d) != 0:
-                            sl.info('not found keyword: ' + str(kws_d.keys()))
+                            log.info('not found keyword: ' + str(kws_d.keys()))
                         print('Page end, ', creator.get_page_index(), 'pages')
                         break
                 creator.next_page()
@@ -88,7 +87,7 @@ def extract_agrstat_official_info(key, url) -> None:
             except Exception:
                 driver.quit()
                 t, v, tr = sys.exc_info()
-                sl.info('error occurred.\n' + str(t) + '\n' + str(v))
+                log.info('error occurred.\n' + str(t) + '\n' + str(v))
                 break
 
 
@@ -111,7 +110,7 @@ def extract_swcb(key, url) -> None:
         # 頁面上的關鍵字
         kw = [i.get_text() for i in soup.select('div.lastList > ul > li > a > h3')]
         # 連結網址
-        file_link = ['https://www.swcb.gov.tw/Statistics/{}'.format(i.get('href'))
+        file_link = ['/'.join(url.split('/')[:-1]) + '/{}'.format(i.get('href'))
                      for i in soup.select('div.lastList > ul > li > a')]
         # 頁面關鍵字如果有在列表裡，則加到字典裡
         for w, f in zip(kw, file_link):
@@ -127,15 +126,18 @@ def extract_swcb(key, url) -> None:
                 for j in range(sheet.ncols):
                     value = str(sheet.row_values(i)[j]).strip().replace(' ', '')
                     if keyword in value:
-                        print(value)
                         return True
             return False
         # 迭代搜尋關鍵字
         for k, v in k_f_l_d.items():
             if find_kw(v):
-                sl.info(k + ' 年度正確')
+                log.info(k + '年度正確')
             else:
-                sl.warning(k + ' 未在指定時間內上傳')
+                log.warning(k + ' 未在指定時間內上傳')
+
+
+def extract_forest(key, url):
+    pass
 
 
 def get_web_driver() -> webdriver:

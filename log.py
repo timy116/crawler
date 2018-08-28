@@ -2,6 +2,7 @@ import logging
 
 
 class SimpleLog(object):
+
     def __init__(self):
         self.logger = logging.getLogger()
         self.logger.setLevel(logging.DEBUG)
@@ -10,10 +11,10 @@ class SimpleLog(object):
         stream_handler = logging.StreamHandler()
         stream_handler.setFormatter(formatter)
         self.logger.addHandler(stream_handler)
-        # log_file = './log.log'
-        # file_handler = logging.FileHandler(log_file)
-        # file_handler.setFormatter(fmt)
-        # self.logger.addHandler(file_handler)
+        log_file = './log.log'
+        file_handler = logging.FileHandler(log_file, encoding='utf8')
+        file_handler.setFormatter(formatter)
+        self.logger.addHandler(file_handler)
 
     def debug(self, msg):
         self.logger.debug(msg)
@@ -39,3 +40,7 @@ class SimpleLog(object):
     @staticmethod
     def disable():
         logging.disable(50)
+
+
+log = SimpleLog()
+log.set_level(20)
