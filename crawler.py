@@ -8,12 +8,13 @@ from datetime import date
 from log import log
 from selenium import webdriver
 from selenium.webdriver.support.ui import Select
-from request_info_creator import AgrstatOfficialInfoCreator as agroff, BaseCreator
+from request_info_creator import AgrstatOfficialInfoCreator as agroff, BaseCreator, ForestCreator, SwcbCreator
 
 # 西元轉民國年
 YEAR = date.today().year - 1911
 kws_d = {}
 kws_l = []
+forest_kws_l = []
 
 
 def start_crawler(key, url) -> None:
@@ -102,9 +103,8 @@ def extract_swcb(key, url) -> None:
     """
     # 創建關鍵字列表
     kws_l.append(key)
-    if len(kws_l) == 3:
-        creator = BaseCreator()
-
+    if len(kws_l) == SwcbCreator.KEYWORDS_LENTH:
+        creator = SwcbCreator()
         k_f_l_d = {}
         soup = bs(requests.get(url, headers=creator.headers).text, 'lxml')
         # 頁面上的關鍵字
@@ -117,27 +117,46 @@ def extract_swcb(key, url) -> None:
             if any((w.find(i) != -1) for i in kws_l):
                 k_f_l_d[w] = f
 
-        # 開啟 excel 並確認年度是否正確
-        def find_kw(link) -> int:
-            keyword = '中華民國' + str(YEAR-1) + '年度'
-            wb = xlrd.open_workbook(file_contents=requests.get(link).content)
-            sheet = wb.sheet_by_index(0)
-            for i in range(sheet.nrows):
-                for j in range(sheet.ncols):
-                    value = str(sheet.row_values(i)[j]).strip().replace(' ', '')
-                    if keyword in value:
-                        return True
-            return False
         # 迭代搜尋關鍵字
         for k, v in k_f_l_d.items():
-            if find_kw(v):
+            if find_kw(v, creator.KEYWORD.format(str(YEAR - 1))):
                 log.info(k + '年度正確')
             else:
                 log.warning(k + ' 未在指定時間內上傳')
 
 
-def extract_forest(key, url):
-    pass
+def extract_forest(key, url) -> None:
+    forest_kws_l.append(key)
+    if len(forest_kws_l) == ForestCreator.KEYWORDS_LENTH:
+        creator = ForestCreator()
+        k_f_l_d = {}
+        soup = bs(requests.get(url, headers=creator.headers).text, 'lxml')
+        kw = [i.get_text() for i in soup.select('#divContent > div.downloadBox > table > tbody > tr > td:nth-of-type(1)')]
+        file_link = ['/'.join(url.split('/')[:-1]) + '{}'.format(i.get('href'))
+                     for i in soup.select('#divContent > div.downloadBox > table > tbody > tr > td > a')]
+        for w, f in zip(kw, file_link):
+            if any((w.find(i) != -1) for i in forest_kws_l):
+                k_f_l_d[w] = f
+        for k, v in k_f_l_d.items():
+            if k == '造林面積':
+                pass
+
+
+def find_kw(link, keyword) -> int:
+    """
+    開啟 excel 並確認年度是否正確
+    :param link: files url
+    :param keyword: keyword select
+    :return: bool
+    """
+    wb = xlrd.open_workbook(file_contents=requests.get(link).content)
+    sheet = wb.sheet_by_index(0)
+    for i in range(sheet.nrows):
+        for j in range(sheet.ncols):
+            value = str(sheet.row_values(i)[j]).strip().replace(' ', '')
+            if keyword in value:
+                return True
+    return False
 
 
 def get_web_driver() -> webdriver:

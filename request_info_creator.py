@@ -49,3 +49,13 @@ class AgrstatOfficialInfoCreator(BaseCreator):
 
     def get_page_index(self) -> str:
         return str(self.page_index)
+
+
+class SwcbCreator(BaseCreator):
+    KEYWORDS_LENTH = 3
+    KEYWORD = '中華民國{}年度'
+
+
+class ForestCreator(BaseCreator):
+    KEYWORDS_LENTH = 6
+    KEYWORD = '中華民國{}年度'
