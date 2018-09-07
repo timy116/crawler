@@ -1,4 +1,4 @@
-from const import LongText
+from crawler.const import LongText
 
 
 class BaseCreator:
