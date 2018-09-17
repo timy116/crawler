@@ -1,6 +1,6 @@
-from crawler import crawler
+import crawler
 import xlrd
-from crawler.const import Base
+from const import Base
 
 
 def extract_url(path) -> dict:

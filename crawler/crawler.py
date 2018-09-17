@@ -1,13 +1,15 @@
-from crawler import pdfhandler
+import io
 import requests
 import sys
+import time
+import pdfhandler
 import xlrd
 from bs4 import BeautifulSoup as bs
-from crawler.const import Base
+from const import Base
 from datetime import date
-from crawler.log import log
+from log import log
 from selenium import webdriver
-from crawler.request_info_creator import AgrstatOfficialInfoCreator as agroff, ForestCreator, SwcbCreator
+from request_info_creator import AgrstatOfficialInfoCreator as agroff, ForestCreator, SwcbCreator
 
 # 西元轉民國年
 YEAR = date.today().year - 1911
@@ -138,7 +140,21 @@ def extract_forest(key, url) -> None:
                 k_f_l_d[w] = f
         for k, v in k_f_l_d.items():
             if k == '造林面積':
-                pass
+                now = time.strftime('%m%d%H%M')
+                keyword = '{}年第{}季'
+                if '07311700' < now <= '10311700':
+                    keyword = keyword.format(YEAR, 2)
+                    print(keyword)
+                elif '10311700' < now <= '01311700':
+                    keyword.format(YEAR, 3)
+                elif '01311700' < now <= '04301700':
+                    keyword.format(YEAR, 4)
+                else:
+                    keyword.format(YEAR, 1)
+                if pdfhandler.extract_text(io.BytesIO(requests.get(v).content), keyword):
+                    log.info('find : ' + k + keyword)
+                else:
+                    log.warning('warning :' + k + ' 必須為 ' + keyword)
 
 
 def find_kw(link, keyword) -> int:
