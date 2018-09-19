@@ -26,7 +26,8 @@ def extract_text(pdf, keyword) -> int:
     for o in layout:
         if isinstance(o, LTTextBoxHorizontal):
             # print(o.get_text().strip().replace(' ', ''))
-            if o.get_text().strip().replace(' ', '') in keyword:
+            text = o.get_text().strip().replace(' ', '')
+            if text.find(keyword) != -1:
                 return True
     return False
 

@@ -59,3 +59,44 @@ class SwcbCreator(BaseCreator):
 class ForestCreator(BaseCreator):
     KEYWORDS_LENTH = 6
     KEYWORD = '中華民國{}年度'
+
+
+class InquireAdvanceCreator(BaseCreator):
+
+    def __init__(self, kw):
+        headers = {
+            'Cookie': '_ga=GA1.3.758348857.1534843864; ASP.NET_SessionId=wm50tvjgnavgxtienzqwlc55',
+            'Referer': 'http://agrstat.coa.gov.tw/sdweb/public/inquiry/InquireAdvance.aspx',
+
+        }
+        super().__init__(headers)
+
+        self.form_data = {
+            '__EVENTTARGET': '',
+            '__EVENTARGUMENT': '',
+            '__VIEWSTATE': LongText.FARMER_INCOME_VIEWSTATE,
+            '__VIEWSTATEGENERATOR': '20124335',
+            '__EVENTVALIDATION': LongText.FARMER_INCOME_EVENTVALIDATION,
+            'ctl00$cphMain$uctlInquireAdvance$ddlYearBegin': '097',
+            'ctl00$cphMain$uctlInquireAdvance$ddlYearEnd': '106',
+            'ctl00$cphMain$uctlInquireAdvance$chkMonth': 'on',
+            'ctl00$cphMain$uctlInquireAdvance$ddlMonthBegin': '10706',
+            'ctl00$cphMain$uctlInquireAdvance$ddlMonthEnd': '10706',
+            'ctl00$cphMain$uctlInquireAdvance$btnQuery2': '查 詢',
+            'ctl00$cphMain$uctlInquireAdvance$hidCallback': '',
+        }
+        if kw == '農民生產所付物價指數':
+            self.form_data['__VIEWSTATE'] = LongText.FARMER_PAID_VIEWSTATE
+            self.form_data['__EVENTVALIDATION'] = LongText.FARMER_PAID_EVENTVALIDATION
+        elif kw == '老年農民福利津貼核付人數':
+            self.form_data['__VIEWSTATE'] = LongText.ELDER_NOP_VIEWSTATE
+            self.form_data['__EVENTVALIDATION'] = LongText.ELDER_NOP_EVENTVALIDATION
+        elif kw == '老年農民福利津貼核付金額':
+            self.form_data['__VIEWSTATE'] = LongText.ELDER_AMOUNT_VIEWSTATE
+            self.form_data['__EVENTVALIDATION'] = LongText.ELDER_AMOUNT_EVENTVALIDATION
+
+    def set_start_date(self, date):
+        self.form_data['ctl00$cphMain$uctlInquireAdvance$ddlMonthBegin'] = date
+
+    def set_end_date(self, date):
+        self.form_data['ctl00$cphMain$uctlInquireAdvance$ddlMonthEnd'] = date

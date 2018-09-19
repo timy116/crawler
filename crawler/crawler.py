@@ -9,13 +9,14 @@ from const import Base
 from datetime import date
 from log import log
 from selenium import webdriver
-from request_info_creator import AgrstatOfficialInfoCreator as agroff, ForestCreator, SwcbCreator
+from request_info_creator import AgrstatOfficialInfoCreator as agroff, ForestCreator, SwcbCreator, InquireAdvanceCreator as ia
 
 # 西元轉民國年
 YEAR = date.today().year - 1911
 kws_d = {}
 kws_l = []
 forest_kws_l = []
+req = requests.Session()
 
 
 def start_crawler(key, url) -> None:
@@ -32,8 +33,11 @@ def start_crawler(key, url) -> None:
     # if url.find('swcb') != -1:
     #     extract_swcb(key, url)
 
-    if url.find('0000575') != -1:
-        extract_forest(key, url)
+    # if url.find('0000575') != -1:
+    #     extract_forest(key, url)
+
+    if url.find('InquireAdvance') != -1:
+        extract_inquire_advance(key, url)
 
 
 def extract_agrstat_official_info(key, url) -> None:
@@ -146,15 +150,49 @@ def extract_forest(key, url) -> None:
                     keyword = keyword.format(YEAR, 2)
                     print(keyword)
                 elif '10311700' < now <= '01311700':
-                    keyword.format(YEAR, 3)
+                    keyword = keyword.format(YEAR, 3)
                 elif '01311700' < now <= '04301700':
-                    keyword.format(YEAR, 4)
+                    keyword = keyword.format(YEAR, 4)
                 else:
-                    keyword.format(YEAR, 1)
+                    keyword = keyword.format(YEAR, 1)
                 if pdfhandler.extract_text(io.BytesIO(requests.get(v).content), keyword):
                     log.info('find : ' + k + keyword)
                 else:
                     log.warning('warning :' + k + ' 必須為 ' + keyword)
+
+
+def extract_inquire_advance(key, url):
+    now = time.strftime('%m%d%H%M')
+    dateline = '{}{}1700'
+    day = ['', 21, 20, 20, 22, 20, 20, 22, 20, 20, 22, 20, 20]
+    month = str(date.today().month).rjust(2, '0')
+    flag_month = month if dateline.format(month, day[int(month)]) < now else str(int(month)-1).rjust(2, '0')
+    next_flag_month = month if dateline.format(month, day[int(month)]) > now else str(int(month)+1).rjust(2, '0')
+    keyword = '{}年{}月'
+    creator = ia(key)
+    if dateline.format(flag_month, day[int(month)]) < now < dateline.format(next_flag_month, day[int(next_flag_month)]):
+        if key == '老年農民福利津貼核付人數' or key == '老年農民福利津貼核付金額':
+            creator.set_start_date(str(YEAR) + str(int(flag_month)-2).rjust(2, '0'))
+            creator.set_end_date(str(YEAR) + str(int(flag_month)-1).rjust(2, '0'))
+            keyword = keyword.format(YEAR, int(flag_month)-2)
+        else:
+            creator.set_start_date(str(YEAR) + str(int(flag_month) - 2).rjust(2, '0'))
+            creator.set_end_date(str(YEAR) + str(int(flag_month) - 1).rjust(2, '0'))
+            keyword = keyword.format(YEAR, int(flag_month)-1)
+    soup = bs(req.post(url, headers=creator.headers, data=creator.form_data).text, 'lxml')
+    if key == '農民生產所得物價指數':
+        td = soup.select('td.VerDim')
+        print(td)
+        for i in td:
+            print(i.get_text())
+    tr = soup.select('#ctl00_cphMain_uctlInquireAdvance_tabResult > tr:nth-of-type(2)')
+    for i in tr:
+        text = i.get_text().strip().replace(' ', '')
+        if text.find(keyword) != -1:
+            log.info(key + ' : ' + text + ', release time = ' + keyword)
+        else:
+            log.warning(key + ', 未在指定時間上傳 : ' + text + ', release time = ' + keyword)
+        print(i.get_text().strip().replace(' ', ''))
 
 
 def find_kw(link, keyword) -> int:
