@@ -42,11 +42,11 @@ def start_crawler(key, url) -> None:
     # if url.find('0000575') != -1:
     #     extract_forest(key, url)
 
-    if url.find('InquireAdvance') != -1:
-        extract_inquire_advance(key, url)
+    # if url.find('InquireAdvance') != -1:
+    #     extract_inquire_advance(key, url)
 
-    # if url.find('woodprice') != -1:
-    #     extract_wood_price(key, url)
+    if url.find('woodprice') != -1:
+        extract_wood_price(key, url)
 
 
 def extract_agrstat_official_info(key, url) -> None:
@@ -170,10 +170,17 @@ def extract_forest(key, url) -> None:
                     log.warning('warning :' + k + ' 必須為 ' + keyword)
 
 
-def extract_inquire_advance(key, url):
+def extract_inquire_advance(key, url) -> None:
+    """
+    如果 key == 老農津貼相關, 月份為當月的前兩個月, 其他則為前一個月
+    last_two_tr: 因最新的月份為倒數第二個 tr 元素, 因此可用來判斷是否未在指定時間內更新資料
+    :param key: 農民生產所得物價指數, 農民生產所付物價指數, 老年農民福利津貼核付人數, 老年農民福利津貼核付金額
+    :param url: http://agrstat.coa.gov.tw/sdweb/public/inquiry/InquireAdvance.aspx
+    :return: None
+    """
+    keyword = '{}月'
     day = ['', 21, 20, 20, 22, 20, 20, 22, 20, 20, 22, 20, 20]
     now, flag_month, datetime_start, datetime_end = datetime_maker(day)
-    keyword = '{}月'
     creator = ia(key)
     if datetime_start < now < datetime_end:
         if key == '老年農民福利津貼核付人數' or key == '老年農民福利津貼核付金額':
@@ -221,10 +228,38 @@ def extract_inquire_advance(key, url):
     #     print(i.get_text().strip().replace(' ', ''))
 
 
-def extract_wood_price(key, url):
+def extract_wood_price(key, url) -> None:
+    """
+    爬取 木材市價 website
+    :param key: 木材市價
+    :param url: https://woodprice.forest.gov.tw/Compare/Q_CompareProvinceConiferous.aspx
+    :return: None
+    """
+    keyword = '{}年{}月'
+    day = ['', 25, 26, 26, 25, 25, 25, 25, 27, 25, 25, 26, 25]
+    now, flag_month, datetime_start, datetime_end = datetime_maker(day)
     creator = WoodPriceCreator()
-    soup = bs(req.post(url, headers=creator.headers, data=creator.form_data).content, 'lxml')
-    print(soup.prettify())
+
+    def request(i=0):
+        format_keyword = ''
+        if datetime_start < now < datetime_end:
+            creator.set_years(YEAR)
+            creator.set_months(int(flag_month) - i)
+            format_keyword = keyword.format(YEAR, int(flag_month) - i)
+        soup = bs(req.post(url, headers=creator.headers, data=creator.form_data).content, 'lxml')
+        tr = soup.select('#ctl00_Main_q2_gv > tr:nth-of-type(2)')[0]
+        text = tr.get_text().strip().replace(' ', '')
+        if i != 0:
+            if text.find(format_keyword) != -1:
+                log.info(key + ' : ' + text + ' == ' + 'release month ' + format_keyword)
+            else:
+                log.warning(datetime_start + ' - ' + datetime_end + ' -- ' + format_keyword + ', ' + key + ' : ' + text)
+        else:
+            if text.find(format_keyword) != -1:
+                log.warning(datetime_start + ' - ' + datetime_end + ' -- ' +
+                            keyword.format(YEAR, int(flag_month) - 1) + ', ' + key + ' : ' + text)
+    request(1)
+    request()
 
 
 def find_kw(link, keyword) -> int:
@@ -245,6 +280,15 @@ def find_kw(link, keyword) -> int:
 
 
 def datetime_maker(day) -> tuple:
+    """
+    產生發布日期的期間 ex: X月X日 - X月X日
+    :param day: every month's release day
+    :return: tuple
+    now: 當下時間
+    flag month: 是當月還是上個月份, 若為個位數月份前面須補 0
+    datetime_start: release date start
+    datetime_end: release date end
+    """
     now = time.strftime('%m%d%H%M')
     dateline = '{}{}1700'
     month = str(date.today().month).rjust(2, '0')

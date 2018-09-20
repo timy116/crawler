@@ -128,7 +128,13 @@ class WoodPriceCreator(BaseCreator):
             '__VIEWSTATE': LongText.WOOD_PRICE_VIEWSTATE,
             '__VIEWSTATEGENERATOR': 'F06CDE5E',
             'ctl00$Main$CompareQueryUi1$q1_ddl_years': '107',
-            'ctl00$Main$CompareQueryUi1$q1_ddl_months': '10',
+            'ctl00$Main$CompareQueryUi1$q1_ddl_months': '9',
             'ctl00$Main$CompareQueryUi1$m_DownloadFileTypeDropDownList$m_DownloadFileType': '.xls',
             'ctl00$Main$q2_btn_Query': '查詢',
         }
+
+    def set_years(self, year):
+        self.form_data['ctl00$Main$CompareQueryUi1$q1_ddl_years'] = str(year)
+
+    def set_months(self, month):
+        self.form_data['ctl00$Main$CompareQueryUi1$q1_ddl_months'] = str(month)
