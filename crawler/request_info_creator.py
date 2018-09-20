@@ -106,3 +106,29 @@ class InquireAdvanceCreator(BaseCreator):
 
     def set_end_date(self, date):
         self.form_data['ctl00$cphMain$uctlInquireAdvance$ddlMonthEnd'] = date
+
+
+class WoodPriceCreator(BaseCreator):
+
+    def __init__(self):
+        headers = {
+            'Cookie': '_ga=GA1.3.1949248998.1534385798; __utmz=227712522.1534385798.1.1.utmcsr=(direct)|utmccn=(direct)'
+                      '|utmcmd=(none); ASP.NET_SessionId=0kxdbqnbid0bupupgs3yzcch; _gid=GA1.3.1204522383.1537413421;'
+                      ' __utma=227712522.1949248998.1534385798.1537171059.1537413421.9; __utmc=227712522;'
+                      ' TS0172de76=01215f806c7a994aa6f5188886c7994a55f22d6852b26b1d578850315d8663591cf62af313275fddb2ba'
+                      '1cfadc3e42d01316bfe778',
+            'Origin': 'https://woodprice.forest.gov.tw',
+            'Referer': 'https://woodprice.forest.gov.tw/Compare/Q_CompareProvinceConiferous.aspx',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        }
+        super().__init__(headers)
+        self.form_data = {
+            '__EVENTTARGET': '',
+            '__EVENTARGUMENT': '',
+            '__VIEWSTATE': LongText.WOOD_PRICE_VIEWSTATE,
+            '__VIEWSTATEGENERATOR': 'F06CDE5E',
+            'ctl00$Main$CompareQueryUi1$q1_ddl_years': '107',
+            'ctl00$Main$CompareQueryUi1$q1_ddl_months': '10',
+            'ctl00$Main$CompareQueryUi1$m_DownloadFileTypeDropDownList$m_DownloadFileType': '.xls',
+            'ctl00$Main$q2_btn_Query': '查詢',
+        }

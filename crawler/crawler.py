@@ -9,7 +9,13 @@ from const import Base
 from datetime import date
 from log import log
 from selenium import webdriver
-from request_info_creator import AgrstatOfficialInfoCreator as agroff, ForestCreator, SwcbCreator, InquireAdvanceCreator as ia
+from request_info_creator import (
+    AgrstatOfficialInfoCreator as agroff,
+    ForestCreator,
+    SwcbCreator,
+    InquireAdvanceCreator as ia,
+    WoodPriceCreator,
+)
 
 # 西元轉民國年
 YEAR = date.today().year - 1911
@@ -36,8 +42,11 @@ def start_crawler(key, url) -> None:
     # if url.find('0000575') != -1:
     #     extract_forest(key, url)
 
-    if url.find('InquireAdvance') != -1:
-        extract_inquire_advance(key, url)
+    # if url.find('InquireAdvance') != -1:
+    #     extract_inquire_advance(key, url)
+
+    if url.find('woodprice') != -1:
+        extract_woodprice(key, url)
 
 
 def extract_agrstat_official_info(key, url) -> None:
@@ -216,6 +225,12 @@ def extract_inquire_advance(key, url):
     #     else:
     #         log.warning(key + ', 未在指定時間上傳 : ' + text + ', release time = ' + keyword)
     #     print(i.get_text().strip().replace(' ', ''))
+
+
+def extract_woodprice(key, url):
+    creator = WoodPriceCreator()
+    soup = bs(req.post(url, headers=creator.headers, data=creator.form_data).content, 'lxml')
+    print(soup.prettify())
 
 
 def find_kw(link, keyword) -> int:
