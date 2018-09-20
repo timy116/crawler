@@ -1,4 +1,4 @@
-from crawler.const import LongText
+from const import LongText
 
 
 class BaseCreator:
@@ -59,3 +59,75 @@ class SwcbCreator(BaseCreator):
 class ForestCreator(BaseCreator):
     KEYWORDS_LENTH = 6
     KEYWORD = '中華民國{}年度'
+
+
+class InquireAdvanceCreator(BaseCreator):
+
+    def __init__(self, kw):
+        headers = {
+            'Cookie': '_ga=GA1.3.758348857.1534843864; ASP.NET_SessionId=wm50tvjgnavgxtienzqwlc55',
+            'Referer': 'http://agrstat.coa.gov.tw/sdweb/public/inquiry/InquireAdvance.aspx',
+
+        }
+        super().__init__(headers)
+
+        self.form_data = {
+            '__EVENTTARGET': '',
+            '__EVENTARGUMENT': '',
+            '__VIEWSTATE': LongText.FARMER_INCOME_VIEWSTATE,
+            '__VIEWSTATEGENERATOR': '20124335',
+            '__EVENTVALIDATION': LongText.FARMER_INCOME_EVENTVALIDATION,
+            'ctl00$cphMain$uctlInquireAdvance$lstFieldGroup': '3094',
+            'ctl00$cphMain$uctlInquireAdvance$btnQuery': '查詢確認',
+            '__LASTFOCUS': '',
+        }
+        if kw == '農民生產所付物價指數':
+            self.form_data['ctl00$cphMain$uctlInquireAdvance$lstFieldGroup'] = '3099'
+            self.form_data['__VIEWSTATE'] = LongText.FARMER_PAID_VIEWSTATE
+            self.form_data['__EVENTVALIDATION'] = LongText.FARMER_PAID_EVENTVALIDATION
+        elif kw == '老年農民福利津貼核付人數':
+            self.form_data['ctl00$cphMain$uctlInquireAdvance$lstFieldGroup'] = '56'
+            self.form_data['__VIEWSTATE'] = LongText.ELDER_NOP_VIEWSTATE
+            self.form_data['__EVENTVALIDATION'] = LongText.ELDER_NOP_EVENTVALIDATION
+        elif kw == '老年農民福利津貼核付金額':
+            self.form_data['ctl00$cphMain$uctlInquireAdvance$lstFieldGroup'] = '57'
+            self.form_data['__VIEWSTATE'] = LongText.ELDER_AMOUNT_VIEWSTATE
+            self.form_data['__EVENTVALIDATION'] = LongText.ELDER_AMOUNT_EVENTVALIDATION
+
+    def set_start_date(self, date):
+        self.form_data['ctl00$cphMain$uctlInquireAdvance$ddlMonthBegin'] = date
+
+    def set_end_date(self, date):
+        self.form_data['ctl00$cphMain$uctlInquireAdvance$ddlMonthEnd'] = date
+
+
+class WoodPriceCreator(BaseCreator):
+
+    def __init__(self):
+        headers = {
+            'Cookie': '_ga=GA1.3.1949248998.1534385798; __utmz=227712522.1534385798.1.1.utmcsr=(direct)|utmccn=(direct)'
+                      '|utmcmd=(none); ASP.NET_SessionId=0kxdbqnbid0bupupgs3yzcch; _gid=GA1.3.1204522383.1537413421;'
+                      ' __utma=227712522.1949248998.1534385798.1537171059.1537413421.9; __utmc=227712522;'
+                      ' TS0172de76=01215f806c7a994aa6f5188886c7994a55f22d6852b26b1d578850315d8663591cf62af313275fddb2ba'
+                      '1cfadc3e42d01316bfe778',
+            'Origin': 'https://woodprice.forest.gov.tw',
+            'Referer': 'https://woodprice.forest.gov.tw/Compare/Q_CompareProvinceConiferous.aspx',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        }
+        super().__init__(headers)
+        self.form_data = {
+            '__EVENTTARGET': '',
+            '__EVENTARGUMENT': '',
+            '__VIEWSTATE': LongText.WOOD_PRICE_VIEWSTATE,
+            '__VIEWSTATEGENERATOR': 'F06CDE5E',
+            'ctl00$Main$CompareQueryUi1$q1_ddl_years': '107',
+            'ctl00$Main$CompareQueryUi1$q1_ddl_months': '9',
+            'ctl00$Main$CompareQueryUi1$m_DownloadFileTypeDropDownList$m_DownloadFileType': '.xls',
+            'ctl00$Main$q2_btn_Query': '查詢',
+        }
+
+    def set_years(self, year):
+        self.form_data['ctl00$Main$CompareQueryUi1$q1_ddl_years'] = str(year)
+
+    def set_months(self, month):
+        self.form_data['ctl00$Main$CompareQueryUi1$q1_ddl_months'] = str(month)

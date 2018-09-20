@@ -3,15 +3,15 @@ import logging
 
 class SimpleLog(object):
 
-    def __init__(self):
-        self.logger = logging.getLogger()
+    def __init__(self, file_name):
+        self.logger = logging.getLogger(file_name)
         self.logger.setLevel(logging.DEBUG)
         fmt = '[%(asctime)s] - %(levelname)s : %(message)s'
         formatter = logging.Formatter(fmt)
         stream_handler = logging.StreamHandler()
         stream_handler.setFormatter(formatter)
         self.logger.addHandler(stream_handler)
-        log_file = './log.log'
+        log_file = './' + file_name + '.log'
         file_handler = logging.FileHandler(log_file, encoding='utf8')
         file_handler.setFormatter(formatter)
         self.logger.addHandler(file_handler)
@@ -42,5 +42,7 @@ class SimpleLog(object):
         logging.disable(50)
 
 
-log = SimpleLog()
+log = SimpleLog('info')
 log.set_level(20)
+err_log = SimpleLog('warning')
+err_log.set_level(20)

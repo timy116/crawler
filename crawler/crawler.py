@@ -1,19 +1,28 @@
-from crawler import pdfhandler
+import io
 import requests
 import sys
+import time
+import pdfhandler
 import xlrd
 from bs4 import BeautifulSoup as bs
-from crawler.const import Base
+from const import Base
 from datetime import date
-from crawler.log import log
+from log import log, err_log
 from selenium import webdriver
-from crawler.request_info_creator import AgrstatOfficialInfoCreator as agroff, ForestCreator, SwcbCreator
+from request_info_creator import (
+    AgrstatOfficialInfoCreator as agroff,
+    ForestCreator,
+    SwcbCreator,
+    InquireAdvanceCreator as ia,
+    WoodPriceCreator,
+)
 
 # 西元轉民國年
 YEAR = date.today().year - 1911
 kws_d = {}
 kws_l = []
 forest_kws_l = []
+req = requests.Session()
 
 
 def start_crawler(key, url) -> None:
@@ -30,8 +39,14 @@ def start_crawler(key, url) -> None:
     # if url.find('swcb') != -1:
     #     extract_swcb(key, url)
 
-    if url.find('0000575') != -1:
-        extract_forest(key, url)
+    # if url.find('0000575') != -1:
+    #     extract_forest(key, url)
+
+    if url.find('InquireAdvance') != -1:
+        extract_inquire_advance(key, url)
+
+    if url.find('woodprice') != -1:
+        extract_wood_price(key, url)
 
 
 def extract_agrstat_official_info(key, url) -> None:
@@ -121,7 +136,7 @@ def extract_swcb(key, url) -> None:
             if find_kw(v, creator.KEYWORD.format(str(YEAR - 1))):
                 log.info(k + '年度正確')
             else:
-                log.warning(k + ' 未在指定時間內上傳')
+                err_log.warning(k + ' 未在指定時間內上傳')
 
 
 def extract_forest(key, url) -> None:
@@ -138,7 +153,81 @@ def extract_forest(key, url) -> None:
                 k_f_l_d[w] = f
         for k, v in k_f_l_d.items():
             if k == '造林面積':
-                pass
+                now = time.strftime('%m%d%H%M')
+                keyword = '{}年第{}季'
+                if '07311700' < now <= '10311700':
+                    keyword = keyword.format(YEAR, 2)
+                    print(keyword)
+                elif '10311700' < now <= '01311700':
+                    keyword = keyword.format(YEAR, 3)
+                elif '01311700' < now <= '04301700':
+                    keyword = keyword.format(YEAR, 4)
+                else:
+                    keyword = keyword.format(YEAR, 1)
+                if pdfhandler.extract_text(io.BytesIO(requests.get(v).content), keyword):
+                    log.info('find : ' + k + keyword)
+                else:
+                    err_log.warning('warning :' + k + ' 必須為 ' + keyword)
+
+
+def extract_inquire_advance(key, url) -> None:
+    """
+    如果 key == 老農津貼相關, 月份為當月的前兩個月, 其他則為前一個月
+    last_two_tr: 因最新的月份為倒數第二個 tr 元素, 因此可用來判斷是否未在指定時間內更新資料
+    :param key: 農民生產所得物價指數, 農民生產所付物價指數, 老年農民福利津貼核付人數, 老年農民福利津貼核付金額
+    :param url: http://agrstat.coa.gov.tw/sdweb/public/inquiry/InquireAdvance.aspx
+    :return: None
+    """
+    keyword = '{}月'
+    day = ['', 21, 20, 20, 22, 20, 20, 22, 20, 20, 22, 20, 20]
+    now, flag_month, datetime_start, datetime_end = datetime_maker(day)
+    creator = ia(key)
+    if datetime_start < now < datetime_end:
+        if key == '老年農民福利津貼核付人數' or key == '老年農民福利津貼核付金額':
+            keyword = keyword.format(int(flag_month)-2)
+        else:
+            keyword = keyword.format(int(flag_month)-1)
+    soup = bs(req.post(url, headers=creator.headers, data=creator.form_data).text, 'lxml')
+    last_two_tr = soup.select('#ctl00_cphMain_uctlInquireAdvance_tabResult > tr')[-2]
+    text = last_two_tr.get_text().strip().replace(' ', '')
+    if text.find(keyword) != -1:
+        log.info(datetime_start + '-' + datetime_end + '--' + keyword + ' | ' + key + ' : ' + text)
+    else:
+        err_log.warning(datetime_start + '-' + datetime_end + '--' + keyword + ' | ' + key + ' : ' + text)
+
+
+def extract_wood_price(key, url) -> None:
+    """
+    爬取 木材市價 website
+    :param key: 木材市價
+    :param url: https://woodprice.forest.gov.tw/Compare/Q_CompareProvinceConiferous.aspx
+    :return: None
+    """
+    keyword = '{}年{}月'
+    day = ['', 25, 26, 26, 25, 25, 25, 25, 27, 25, 25, 26, 25]
+    now, flag_month, datetime_start, datetime_end = datetime_maker(day)
+    creator = WoodPriceCreator()
+
+    def request(i=0):
+        format_keyword = ''
+        if datetime_start < now < datetime_end:
+            creator.set_years(YEAR)
+            creator.set_months(int(flag_month) - i)
+            format_keyword = keyword.format(YEAR, int(flag_month) - i)
+        soup = bs(req.post(url, headers=creator.headers, data=creator.form_data).content, 'lxml')
+        tr = soup.select('#ctl00_Main_q2_gv > tr:nth-of-type(2)')[0]
+        text = tr.get_text().strip().replace(' ', '')
+        if i != 0:
+            if text.find(format_keyword) != -1:
+                log.info(datetime_start + '-' + datetime_end + '--' + format_keyword + ' | ' + key + ' : ' + text)
+            else:
+                err_log.warning(datetime_start + '-' + datetime_end + '--' + format_keyword + ' | ' + key + ' : ' + text)
+        else:
+            if text.find(format_keyword) != -1:
+                err_log.warning(datetime_start + '-' + datetime_end + '--' +
+                                keyword.format(YEAR, int(flag_month) - 1) + ' | ' + key + ' : ' + text)
+    request(1)
+    request()
 
 
 def find_kw(link, keyword) -> int:
@@ -156,6 +245,26 @@ def find_kw(link, keyword) -> int:
             if keyword in value:
                 return True
     return False
+
+
+def datetime_maker(day) -> tuple:
+    """
+    產生發布日期的期間 ex: X月X日 - X月X日
+    :param day: every month's release day
+    :return: tuple
+    now: 當下時間
+    flag month: 是當月還是上個月份, 若為個位數月份前面須補 0
+    datetime_start: release date start
+    datetime_end: release date end
+    """
+    now = time.strftime('%m%d%H%M')
+    dateline = '{}{}1700'
+    month = str(date.today().month).rjust(2, '0')
+    flag_month = month if dateline.format(month, day[int(month)]) < now else str(int(month) - 1).rjust(2, '0')
+    next_flag_month = month if dateline.format(month, day[int(month)]) > now else str(int(month) + 1).rjust(2, '0')
+    datetime_start = dateline.format(flag_month, day[int(month)])
+    datetime_end = dateline.format(next_flag_month, day[int(next_flag_month)])
+    return now, flag_month, datetime_start, datetime_end
 
 
 def get_web_driver() -> webdriver:
