@@ -77,21 +77,27 @@ class InquireAdvanceCreator(BaseCreator):
             '__VIEWSTATE': LongText.FARMER_INCOME_VIEWSTATE,
             '__VIEWSTATEGENERATOR': '20124335',
             '__EVENTVALIDATION': LongText.FARMER_INCOME_EVENTVALIDATION,
-            'ctl00$cphMain$uctlInquireAdvance$ddlYearBegin': '097',
-            'ctl00$cphMain$uctlInquireAdvance$ddlYearEnd': '106',
-            'ctl00$cphMain$uctlInquireAdvance$chkMonth': 'on',
-            'ctl00$cphMain$uctlInquireAdvance$ddlMonthBegin': '10706',
-            'ctl00$cphMain$uctlInquireAdvance$ddlMonthEnd': '10706',
-            'ctl00$cphMain$uctlInquireAdvance$btnQuery2': '查 詢',
-            'ctl00$cphMain$uctlInquireAdvance$hidCallback': '',
+            # 'ctl00$cphMain$uctlInquireAdvance$ddlYearBegin': '097',
+            # 'ctl00$cphMain$uctlInquireAdvance$ddlYearEnd': '106',
+            # 'ctl00$cphMain$uctlInquireAdvance$chkMonth': 'on',
+            # 'ctl00$cphMain$uctlInquireAdvance$ddlMonthBegin': '10706',
+            # 'ctl00$cphMain$uctlInquireAdvance$ddlMonthEnd': '10706',
+            # 'ctl00$cphMain$uctlInquireAdvance$btnQuery2': '查 詢',
+            # 'ctl00$cphMain$uctlInquireAdvance$hidCallback': '',
+            'ctl00$cphMain$uctlInquireAdvance$lstFieldGroup': '3094',
+            'ctl00$cphMain$uctlInquireAdvance$btnQuery': '查詢確認',
+            '__LASTFOCUS': '',
         }
         if kw == '農民生產所付物價指數':
+            self.form_data['ctl00$cphMain$uctlInquireAdvance$lstFieldGroup'] = '3099'
             self.form_data['__VIEWSTATE'] = LongText.FARMER_PAID_VIEWSTATE
             self.form_data['__EVENTVALIDATION'] = LongText.FARMER_PAID_EVENTVALIDATION
         elif kw == '老年農民福利津貼核付人數':
+            self.form_data['ctl00$cphMain$uctlInquireAdvance$lstFieldGroup'] = '56'
             self.form_data['__VIEWSTATE'] = LongText.ELDER_NOP_VIEWSTATE
             self.form_data['__EVENTVALIDATION'] = LongText.ELDER_NOP_EVENTVALIDATION
         elif kw == '老年農民福利津貼核付金額':
+            self.form_data['ctl00$cphMain$uctlInquireAdvance$lstFieldGroup'] = '57'
             self.form_data['__VIEWSTATE'] = LongText.ELDER_AMOUNT_VIEWSTATE
             self.form_data['__EVENTVALIDATION'] = LongText.ELDER_AMOUNT_EVENTVALIDATION
 

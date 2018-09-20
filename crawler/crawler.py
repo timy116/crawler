@@ -168,31 +168,54 @@ def extract_inquire_advance(key, url):
     month = str(date.today().month).rjust(2, '0')
     flag_month = month if dateline.format(month, day[int(month)]) < now else str(int(month)-1).rjust(2, '0')
     next_flag_month = month if dateline.format(month, day[int(month)]) > now else str(int(month)+1).rjust(2, '0')
-    keyword = '{}年{}月'
+    keyword = '{}月'
     creator = ia(key)
-    if dateline.format(flag_month, day[int(month)]) < now < dateline.format(next_flag_month, day[int(next_flag_month)]):
+    time_range_start = dateline.format(flag_month, day[int(month)])
+    time_range_end = dateline.format(next_flag_month, day[int(next_flag_month)])
+    if time_range_start < now < time_range_end:
         if key == '老年農民福利津貼核付人數' or key == '老年農民福利津貼核付金額':
-            creator.set_start_date(str(YEAR) + str(int(flag_month)-2).rjust(2, '0'))
-            creator.set_end_date(str(YEAR) + str(int(flag_month)-1).rjust(2, '0'))
-            keyword = keyword.format(YEAR, int(flag_month)-2)
+            keyword = keyword.format(int(flag_month)-2)
         else:
-            creator.set_start_date(str(YEAR) + str(int(flag_month) - 2).rjust(2, '0'))
-            creator.set_end_date(str(YEAR) + str(int(flag_month) - 1).rjust(2, '0'))
-            keyword = keyword.format(YEAR, int(flag_month)-1)
+            keyword = keyword.format(int(flag_month)-1)
     soup = bs(req.post(url, headers=creator.headers, data=creator.form_data).text, 'lxml')
-    if key == '農民生產所得物價指數':
-        td = soup.select('td.VerDim')
-        print(td)
-        for i in td:
-            print(i.get_text())
-    tr = soup.select('#ctl00_cphMain_uctlInquireAdvance_tabResult > tr:nth-of-type(2)')
-    for i in tr:
-        text = i.get_text().strip().replace(' ', '')
-        if text.find(keyword) != -1:
-            log.info(key + ' : ' + text + ', release time = ' + keyword)
-        else:
-            log.warning(key + ', 未在指定時間上傳 : ' + text + ', release time = ' + keyword)
-        print(i.get_text().strip().replace(' ', ''))
+    last_two_tr = soup.select('#ctl00_cphMain_uctlInquireAdvance_tabResult > tr')[-2]
+    text = last_two_tr.get_text().strip().replace(' ', '')
+    if text.find(keyword) != -1:
+        log.info(key + ' : ' + text + ', ' + 'release month = ' + keyword)
+    else:
+        log.warning(time_range_start + ' - ' + time_range_end + ' -- ' + keyword + ', ' + key + ' : ' + text)
+
+    # now = time.strftime('%m%d%H%M')
+    # dateline = '{}{}1700'
+    # day = ['', 21, 20, 20, 22, 20, 20, 22, 20, 20, 22, 20, 20]
+    # month = str(date.today().month).rjust(2, '0')
+    # flag_month = month if dateline.format(month, day[int(month)]) < now else str(int(month)-1).rjust(2, '0')
+    # next_flag_month = month if dateline.format(month, day[int(month)]) > now else str(int(month)+1).rjust(2, '0')
+    # keyword = '{}年{}月'
+    # creator = ia(key)
+    # if dateline.format(flag_month, day[int(month)]) < now < dateline.format(next_flag_month, day[int(next_flag_month)]):
+    #     if key == '老年農民福利津貼核付人數' or key == '老年農民福利津貼核付金額':
+    #         creator.set_start_date(str(YEAR) + str(int(flag_month)-2).rjust(2, '0'))
+    #         creator.set_end_date(str(YEAR) + str(int(flag_month)-1).rjust(2, '0'))
+    #         keyword = keyword.format(YEAR, int(flag_month)-2)
+    #     else:
+    #         creator.set_start_date(str(YEAR) + str(int(flag_month) - 2).rjust(2, '0'))
+    #         creator.set_end_date(str(YEAR) + str(int(flag_month) - 1).rjust(2, '0'))
+    #         keyword = keyword.format(YEAR, int(flag_month)-1)
+    # soup = bs(req.post(url, headers=creator.headers, data=creator.form_data).text, 'lxml')
+    # if key == '農民生產所得物價指數':
+    #     td = soup.select('td.VerDim')
+    #     print(td)
+    #     for i in td:
+    #         print(i.get_text())
+    # tr = soup.select('#ctl00_cphMain_uctlInquireAdvance_tabResult > tr:nth-of-type(2)')
+    # for i in tr:
+    #     text = i.get_text().strip().replace(' ', '')
+    #     if text.find(keyword) != -1:
+    #         log.info(key + ' : ' + text + ', release time = ' + keyword)
+    #     else:
+    #         log.warning(key + ', 未在指定時間上傳 : ' + text + ', release time = ' + keyword)
+    #     print(i.get_text().strip().replace(' ', ''))
 
 
 def find_kw(link, keyword) -> int:
