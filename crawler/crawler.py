@@ -42,11 +42,11 @@ def start_crawler(key, url) -> None:
     # if url.find('0000575') != -1:
     #     extract_forest(key, url)
 
-    # if url.find('InquireAdvance') != -1:
-    #     extract_inquire_advance(key, url)
+    if url.find('InquireAdvance') != -1:
+        extract_inquire_advance(key, url)
 
-    if url.find('woodprice') != -1:
-        extract_woodprice(key, url)
+    # if url.find('woodprice') != -1:
+    #     extract_wood_price(key, url)
 
 
 def extract_agrstat_official_info(key, url) -> None:
@@ -171,17 +171,11 @@ def extract_forest(key, url) -> None:
 
 
 def extract_inquire_advance(key, url):
-    now = time.strftime('%m%d%H%M')
-    dateline = '{}{}1700'
     day = ['', 21, 20, 20, 22, 20, 20, 22, 20, 20, 22, 20, 20]
-    month = str(date.today().month).rjust(2, '0')
-    flag_month = month if dateline.format(month, day[int(month)]) < now else str(int(month)-1).rjust(2, '0')
-    next_flag_month = month if dateline.format(month, day[int(month)]) > now else str(int(month)+1).rjust(2, '0')
+    now, flag_month, datetime_start, datetime_end = datetime_maker(day)
     keyword = '{}月'
     creator = ia(key)
-    time_range_start = dateline.format(flag_month, day[int(month)])
-    time_range_end = dateline.format(next_flag_month, day[int(next_flag_month)])
-    if time_range_start < now < time_range_end:
+    if datetime_start < now < datetime_end:
         if key == '老年農民福利津貼核付人數' or key == '老年農民福利津貼核付金額':
             keyword = keyword.format(int(flag_month)-2)
         else:
@@ -192,7 +186,7 @@ def extract_inquire_advance(key, url):
     if text.find(keyword) != -1:
         log.info(key + ' : ' + text + ', ' + 'release month = ' + keyword)
     else:
-        log.warning(time_range_start + ' - ' + time_range_end + ' -- ' + keyword + ', ' + key + ' : ' + text)
+        log.warning(datetime_start + ' - ' + datetime_end + ' -- ' + keyword + ', ' + key + ' : ' + text)
 
     # now = time.strftime('%m%d%H%M')
     # dateline = '{}{}1700'
@@ -227,7 +221,7 @@ def extract_inquire_advance(key, url):
     #     print(i.get_text().strip().replace(' ', ''))
 
 
-def extract_woodprice(key, url):
+def extract_wood_price(key, url):
     creator = WoodPriceCreator()
     soup = bs(req.post(url, headers=creator.headers, data=creator.form_data).content, 'lxml')
     print(soup.prettify())
@@ -248,6 +242,17 @@ def find_kw(link, keyword) -> int:
             if keyword in value:
                 return True
     return False
+
+
+def datetime_maker(day) -> tuple:
+    now = time.strftime('%m%d%H%M')
+    dateline = '{}{}1700'
+    month = str(date.today().month).rjust(2, '0')
+    flag_month = month if dateline.format(month, day[int(month)]) < now else str(int(month) - 1).rjust(2, '0')
+    next_flag_month = month if dateline.format(month, day[int(month)]) > now else str(int(month) + 1).rjust(2, '0')
+    datetime_start = dateline.format(flag_month, day[int(month)])
+    datetime_end = dateline.format(next_flag_month, day[int(next_flag_month)])
+    return now, flag_month, datetime_start, datetime_end
 
 
 def get_web_driver() -> webdriver:
