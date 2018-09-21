@@ -5,7 +5,7 @@ class SimpleLog(object):
 
     def __init__(self, file_name):
         self.logger = logging.getLogger(file_name)
-        self.logger.setLevel(logging.DEBUG)
+        self.logger.setLevel(20)
         fmt = '[%(asctime)s] - %(levelname)s : %(message)s'
         formatter = logging.Formatter(fmt)
         stream_handler = logging.StreamHandler()
@@ -43,6 +43,6 @@ class SimpleLog(object):
 
 
 log = SimpleLog('info')
-log.set_level(20)
 err_log = SimpleLog('warning')
-err_log.set_level(20)
+logging.getLogger('pdfminer').disabled = True
+logging.getLogger().disabled = True
