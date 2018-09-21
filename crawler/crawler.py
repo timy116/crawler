@@ -3,11 +3,13 @@ import requests
 import sys
 import time
 import pdfhandler
+import pyexcel_ods
 import xlrd
 from bs4 import BeautifulSoup as bs
 from const import Base
 from datetime import date
 from log import log, err_log
+from pprint import pprint
 from selenium import webdriver
 from request_info_creator import (
     AgrstatOfficialInfoCreator as agroff,
@@ -39,14 +41,14 @@ def start_crawler(key, url) -> None:
     # if url.find('swcb') != -1:
     #     extract_swcb(key, url)
 
-    # if url.find('0000575') != -1:
-    #     extract_forest(key, url)
+    if url.find('0000575') != -1:
+        extract_forest(key, url)
 
     if url.find('InquireAdvance') != -1:
         extract_inquire_advance(key, url)
 
-    if url.find('woodprice') != -1:
-        extract_wood_price(key, url)
+    # if url.find('woodprice') != -1:
+    #     extract_wood_price(key, url)
 
 
 def extract_agrstat_official_info(key, url) -> None:
@@ -155,19 +157,38 @@ def extract_forest(key, url) -> None:
             if k == '造林面積':
                 now = time.strftime('%m%d%H%M')
                 keyword = '{}年第{}季'
-                if '07311700' < now <= '10311700':
-                    keyword = keyword.format(YEAR, 2)
-                    print(keyword)
-                elif '10311700' < now <= '01311700':
-                    keyword = keyword.format(YEAR, 3)
-                elif '01311700' < now <= '04301700':
+                month = ['', '01311700', '', '', '04301700', '', '', '07311700', '', '', '10311700']
+                if month[1] < now <= month[4]:
                     keyword = keyword.format(YEAR, 4)
-                else:
+                    datetime_start = month[1]
+                    datetime_end = month[4]
+                elif month[4] < now <= month[7]:
                     keyword = keyword.format(YEAR, 1)
-                if pdfhandler.extract_text(io.BytesIO(requests.get(v).content), keyword):
-                    log.info('find : ' + k + keyword)
+                    datetime_start = month[4]
+                    datetime_end = month[7]
+                elif month[7] < now <= month[10]:
+                    keyword = keyword.format(YEAR, 2)
+                    datetime_start = month[7]
+                    datetime_end = month[10]
                 else:
-                    err_log.warning('warning :' + k + ' 必須為 ' + keyword)
+                    keyword = keyword.format(YEAR, 3)
+                    datetime_start = month[10]
+                    datetime_end = month[1]
+                find, text = pdfhandler.extract_text(io.BytesIO(requests.get(v).content), keyword)
+                if find:
+                    log.info(datetime_start + '-' + datetime_end + '--' + keyword + ' | ' + k + ' : ' + text)
+                else:
+                    err_log.warning(datetime_start + '-' + datetime_end + '--' + keyword + ' | ' + k + ' : ' + text)
+            if k == '林務局森林遊樂區收入':
+                keyword = '{}年{}月'
+                day = ['', 25, 26, 26, 25, 25, 25, 25, 27, 25, 25, 26, 25]
+                flag_month, datetime_start, datetime_end = datetime_maker(day)
+                format_keyword = keyword.format(YEAR, int(flag_month) - 1)
+                find, text = find_kw(v, format_keyword, 'ods')
+                if find:
+                    log.info(datetime_start + '-' + datetime_end + '--' + format_keyword + ' | ' + k + ' : ' + text)
+                else:
+                    err_log.warning(datetime_start + '-' + datetime_end + '--' + format_keyword + ' | ' + key + ' : ' + text)
 
 
 def extract_inquire_advance(key, url) -> None:
@@ -180,13 +201,12 @@ def extract_inquire_advance(key, url) -> None:
     """
     keyword = '{}月'
     day = ['', 21, 20, 20, 22, 20, 20, 22, 20, 20, 22, 20, 20]
-    now, flag_month, datetime_start, datetime_end = datetime_maker(day)
+    flag_month, datetime_start, datetime_end = datetime_maker(day)
     creator = ia(key)
-    if datetime_start < now < datetime_end:
-        if key == '老年農民福利津貼核付人數' or key == '老年農民福利津貼核付金額':
-            keyword = keyword.format(int(flag_month)-2)
-        else:
-            keyword = keyword.format(int(flag_month)-1)
+    if key == '老年農民福利津貼核付人數' or key == '老年農民福利津貼核付金額':
+        keyword = keyword.format(int(flag_month)-2)
+    else:
+        keyword = keyword.format(int(flag_month)-1)
     soup = bs(req.post(url, headers=creator.headers, data=creator.form_data).text, 'lxml')
     last_two_tr = soup.select('#ctl00_cphMain_uctlInquireAdvance_tabResult > tr')[-2]
     text = last_two_tr.get_text().strip().replace(' ', '')
@@ -205,15 +225,13 @@ def extract_wood_price(key, url) -> None:
     """
     keyword = '{}年{}月'
     day = ['', 25, 26, 26, 25, 25, 25, 25, 27, 25, 25, 26, 25]
-    now, flag_month, datetime_start, datetime_end = datetime_maker(day)
+    flag_month, datetime_start, datetime_end = datetime_maker(day)
     creator = WoodPriceCreator()
 
     def request(i=0):
-        format_keyword = ''
-        if datetime_start < now < datetime_end:
-            creator.set_years(YEAR)
-            creator.set_months(int(flag_month) - i)
-            format_keyword = keyword.format(YEAR, int(flag_month) - i)
+        creator.set_years(YEAR)
+        creator.set_months(int(flag_month) - i)
+        format_keyword = keyword.format(YEAR, int(flag_month) - i)
         soup = bs(req.post(url, headers=creator.headers, data=creator.form_data).content, 'lxml')
         tr = soup.select('#ctl00_Main_q2_gv > tr:nth-of-type(2)')[0]
         text = tr.get_text().strip().replace(' ', '')
@@ -230,21 +248,35 @@ def extract_wood_price(key, url) -> None:
     request()
 
 
-def find_kw(link, keyword) -> int:
+def find_kw(link, keyword, file_type='excel'):
     """
     開啟 excel 並確認年度是否正確
     :param link: files url
     :param keyword: keyword select
+    :param file_type:
     :return: bool
     """
-    wb = xlrd.open_workbook(file_contents=requests.get(link).content)
-    sheet = wb.sheet_by_index(0)
-    for i in range(sheet.nrows):
-        for j in range(sheet.ncols):
-            value = str(sheet.row_values(i)[j]).strip().replace(' ', '')
-            if keyword in value:
-                return True
-    return False
+    if file_type != 'excel':
+        calc = pyexcel_ods.get_data(io.BytesIO(req.get(link).content))
+        sheet = list(calc.values())[0]
+        text = ''
+        for row in sheet:
+            for cell in row:
+                cell_text = str(cell).strip().replace(' ', '')
+                if cell_text.find('時期') != -1:
+                    text = cell_text
+                    if keyword in text:
+                        return True, text
+        return False, text
+    else:
+        wb = xlrd.open_workbook(file_contents=requests.get(link).content)
+        sheet = wb.sheet_by_index(0)
+        for i in range(sheet.nrows):
+            for j in range(sheet.ncols):
+                value = str(sheet.row_values(i)[j]).strip().replace(' ', '')
+                if keyword in value:
+                    return True, value
+        return False
 
 
 def datetime_maker(day) -> tuple:
@@ -264,7 +296,7 @@ def datetime_maker(day) -> tuple:
     next_flag_month = month if dateline.format(month, day[int(month)]) > now else str(int(month) + 1).rjust(2, '0')
     datetime_start = dateline.format(flag_month, day[int(month)])
     datetime_end = dateline.format(next_flag_month, day[int(next_flag_month)])
-    return now, flag_month, datetime_start, datetime_end
+    return flag_month, datetime_start, datetime_end
 
 
 def get_web_driver() -> webdriver:
