@@ -59,9 +59,12 @@ class SwcbCreator(BaseCreator):
 class ForestCreator(BaseCreator):
     KEYWORDS_LENTH = 6
     KEYWORD = '中華民國{}年度'
+    DAY = ['', 25, 26, 26, 25, 25, 25, 25, 27, 25, 25, 26, 25]
 
 
 class InquireAdvanceCreator(BaseCreator):
+    KEYWORD = '{}月'
+    DAY = ['', 21, 20, 20, 22, 20, 20, 22, 20, 20, 22, 20, 20]
 
     def __init__(self, kw):
         headers = {
@@ -102,6 +105,8 @@ class InquireAdvanceCreator(BaseCreator):
 
 
 class WoodPriceCreator(BaseCreator):
+    KEYWORD = '{}年{}月'
+    DAY = ['', 25, 26, 26, 25, 25, 25, 25, 27, 25, 25, 26, 25]
 
     def __init__(self):
         headers = {
