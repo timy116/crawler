@@ -23,7 +23,7 @@ def extract_text(pdf, keyword) -> tuple:
     for o in layout:
         if isinstance(o, LTTextBoxHorizontal):
             pdf_text = o.get_text().strip().replace(' ', '')
-            if pdf_text.find('時期') != -1:
+            if pdf_text.find('時期') != -1 or pdf_text.find('農業統計年報') != -1:
                 text = pdf_text
             if text.find(keyword) != -1:
                 return True, text

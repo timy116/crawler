@@ -136,3 +136,21 @@ class WoodPriceCreator(BaseCreator):
 
     def set_months(self, month):
         self.form_data['ctl00$Main$CompareQueryUi1$q1_ddl_months'] = str(month)
+
+
+class AgrstatBookCreator(BaseCreator):
+    KEYWORD = '{}年'
+
+    def __init__(self, kw):
+        headers = {
+            'Cookie': '_ga=GA1.3.758348857.1534843864; ASP.NET_SessionId=3bv2ewyqvboe2y45g52hri55',
+            'Referer': 'http://agrstat.coa.gov.tw/sdweb/public/book/Book.aspx',
+        }
+        super().__init__(headers)
+        self.form_data = {
+            '__EVENTTARGET': 'ctl00$cphMain$uctlBook$grdBook$ctl08$btnBookName',
+            '__EVENTARGUMENT': '',
+            '__VIEWSTATE': LongText.PROVISION_VIEWSTATE,
+            '__VIEWSTATEGENERATOR': 'AC7AE538',
+            '__EVENTVALIDATION': LongText.PROVISION_EVENTVALIDATION
+        }

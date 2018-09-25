@@ -17,6 +17,7 @@ from request_info_creator import (
     SwcbCreator,
     InquireAdvanceCreator as ia,
     WoodPriceCreator,
+    AgrstatBookCreator
 )
 
 # 西元轉民國年
@@ -47,8 +48,11 @@ def start_crawler(key, url) -> None:
     # if url.find('InquireAdvance') != -1:
     #     extract_inquire_advance(key, url)
 
-    # if url.find('woodprice') != -1:
-    #     extract_wood_price(key, url)
+    if url.find('woodprice') != -1:
+        extract_wood_price(key, url)
+
+    if url.find('book') != -1:
+        extract_agrstat_book(key, url)
 
 
 def extract_agrstat_official_info(key, url) -> None:
@@ -173,7 +177,7 @@ def extract_forest(key, url) -> None:
                     format_keyword = keyword.format(YEAR, 3)
                     datetime_start = month[10]
                     datetime_end = month[1]
-                find, text = pdfhandler.extract_text(io.BytesIO(requests.get(v).content), keyword)
+                find, text = pdfhandler.extract_text(io.BytesIO(requests.get(v).content), format_keyword)
                 if find:
                     log.info(datetime_start + '-' + datetime_end + '--' + format_keyword + ' | ' + k + ' : ' + text)
                 else:
@@ -241,6 +245,29 @@ def extract_wood_price(key, url) -> None:
                                 creator.KEYWORD.format(YEAR, int(flag_month) - 1) + ' | ' + key + ' : ' + text)
     request(1)
     request()
+
+
+def extract_agrstat_book(key, url) -> None:
+    now = time.strftime('%m%d%H%M')
+    creator = AgrstatBookCreator(key)
+    soup = bs(req.post(url, headers=creator.headers, data=creator.form_data).content, 'lxml')
+    li = soup.select('#ctl00_cphMain_uctlBook_repChapter_ctl43_dtlFile > span:nth-of-type(2) > a')
+    if key == '糧食供需統計':
+        specfied_date = '10011700'
+        if specfied_date < now:
+            format_keyword = creator.KEYWORD.format(YEAR - 1)
+        else:
+            format_keyword = creator.KEYWORD.format(YEAR - 2)
+
+        if li:
+            a = li[0].get('href')
+            file_link = '/'.join(url.split('/')[:-1]) + '/' + a.split('/')[1]
+            find, text = pdfhandler.extract_text(io.BytesIO(req.get(file_link).content),
+                                                 creator.KEYWORD.format(format_keyword))
+            if find:
+                log.info(specfied_date + '--' + format_keyword + ' | ' + key + ' : ' + text)
+            else:
+                log.warning(specfied_date + '--' + format_keyword + ' | ' + key + ' : ' + text)
 
 
 def find_kw(link, keyword, file_type='excel') -> tuple:
