@@ -20,6 +20,11 @@ class BaseCreator:
 # 公務統計
 class AgrstatOfficialInfoCreator(BaseCreator):
     KEYWORDS_LENTH = 19
+    SELECT_DICT = {
+        'tr_row1': 'tr.Row > td:nth-of-type(3)',
+        'tr_row2': 'tr.AlternatingRow > td:nth-of-type(3)',
+        'td': 'tr.Pager > td > table > tbody > tr > td',
+    }
 
     def __init__(self):
         headers = {
@@ -54,17 +59,28 @@ class AgrstatOfficialInfoCreator(BaseCreator):
 class SwcbCreator(BaseCreator):
     KEYWORDS_LENTH = 3
     KEYWORD = '中華民國{}年度'
+    SELECT_DICT = {
+        'h3': 'div.lastList > ul > li > a > h3',
+        'a': 'div.lastList > ul > li > a',
+    }
 
 
 class ForestCreator(BaseCreator):
     KEYWORDS_LENTH = 6
     KEYWORD = '中華民國{}年度'
     DAY = ['', 25, 26, 26, 25, 25, 25, 25, 27, 25, 25, 26, 25]
+    SELECT_DICT = {
+        'td_of_1': '#divContent > div.downloadBox > table > tbody > tr > td:nth-of-type(1)',
+        'a': '#divContent > div.downloadBox > table > tbody > tr > td > a',
+    }
 
 
 class InquireAdvanceCreator(BaseCreator):
     KEYWORD = '{}月'
     DAY = ['', 21, 20, 20, 22, 20, 20, 22, 20, 20, 22, 20, 20]
+    SELECT_DICT = {
+        'tr': '#ctl00_cphMain_uctlInquireAdvance_tabResult > tr',
+    }
 
     def __init__(self, kw):
         headers = {
@@ -107,6 +123,9 @@ class InquireAdvanceCreator(BaseCreator):
 class WoodPriceCreator(BaseCreator):
     KEYWORD = '{}年{}月'
     DAY = ['', 25, 26, 26, 25, 25, 25, 25, 27, 25, 25, 26, 25]
+    SELECT_DICT = {
+        'tr_of_2': '#ctl00_Main_q2_gv > tr:nth-of-type(2)',
+    }
 
     def __init__(self):
         headers = {
@@ -140,6 +159,9 @@ class WoodPriceCreator(BaseCreator):
 
 class AgrstatBookCreator(BaseCreator):
     KEYWORD = '{}年'
+    SELECT_DICT = {
+        'a': '#ctl00_cphMain_uctlBook_repChapter_ctl43_dtlFile > span:nth-of-type(2) > a',
+    }
 
     def __init__(self, kw):
         headers = {

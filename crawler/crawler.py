@@ -22,6 +22,14 @@ from request_info_creator import (
 
 # 西元轉民國年
 YEAR = date.today().year - 1911
+# switch-like
+LAMBDA_DICT = {
+    'kw_list': lambda l: [i.get_text().strip().replace(' ', '') for i in l],
+    'file_link_list': lambda url, l: [url + '{}'.format(i.get('href')) for i in l],
+    'specfied_element_text': lambda l, x: l[x].get_text().strip().replace(' ', ''),
+    'specfied_file_link': lambda url, l, x: url + '{}'.format(l[x].get('href')),
+}
+
 kws_d = {}
 kws_l = []
 forest_kws_l = []
@@ -36,22 +44,22 @@ def start_crawler(key, url) -> None:
     :return: None
     """
 
-    # if url.find('OfficialInformation') != -1:
-    #     extract_agrstat_official_info(key, url)
+    if url.find('OfficialInformation') != -1:
+        extract_agrstat_official_info(key, url)
 
-    # if url.find('swcb') != -1:
-    #     extract_swcb(key, url)
+    elif url.find('swcb') != -1:
+        extract_swcb(key, url)
 
-    if url.find('0000575') != -1:
+    elif url.find('0000575') != -1:
         extract_forest(key, url)
 
-    # if url.find('InquireAdvance') != -1:
-    #     extract_inquire_advance(key, url)
+    elif url.find('InquireAdvance') != -1:
+        extract_inquire_advance(key, url)
 
-    if url.find('woodprice') != -1:
+    elif url.find('woodprice') != -1:
         extract_wood_price(key, url)
 
-    if url.find('book') != -1:
+    elif url.find('book') != -1:
         extract_agrstat_book(key, url)
 
 
