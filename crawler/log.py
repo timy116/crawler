@@ -44,5 +44,5 @@ class SimpleLog(object):
 
 log = SimpleLog('info')
 err_log = SimpleLog('warning')
-logging.getLogger('pdfminer').disabled = True
-logging.getLogger().disabled = True
+logging.getLogger('pdfminer').setLevel(logging.ERROR)
+logging.getLogger().setLevel(logging.ERROR)

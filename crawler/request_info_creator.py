@@ -20,6 +20,11 @@ class BaseCreator:
 # 公務統計
 class AgrstatOfficialInfoCreator(BaseCreator):
     KEYWORDS_LENTH = 19
+    SELECT_DICT = {
+        'tr_row1': 'tr.Row > td:nth-of-type(3)',
+        'tr_row2': 'tr.AlternatingRow > td:nth-of-type(3)',
+        'td': 'tr.Pager > td > table > tbody > tr > td',
+    }
 
     def __init__(self):
         headers = {
@@ -54,14 +59,28 @@ class AgrstatOfficialInfoCreator(BaseCreator):
 class SwcbCreator(BaseCreator):
     KEYWORDS_LENTH = 3
     KEYWORD = '中華民國{}年度'
+    SELECT_DICT = {
+        'h3': 'div.lastList > ul > li > a > h3',
+        'a': 'div.lastList > ul > li > a',
+    }
 
 
 class ForestCreator(BaseCreator):
     KEYWORDS_LENTH = 6
     KEYWORD = '中華民國{}年度'
+    DAY = ['', 25, 26, 26, 25, 25, 25, 25, 27, 25, 25, 26, 25]
+    SELECT_DICT = {
+        'td_of_1': '#divContent > div.downloadBox > table > tbody > tr > td:nth-of-type(1)',
+        'a': '#divContent > div.downloadBox > table > tbody > tr > td > a',
+    }
 
 
 class InquireAdvanceCreator(BaseCreator):
+    KEYWORD = '{}月'
+    DAY = ['', 21, 20, 20, 22, 20, 20, 22, 20, 20, 22, 20, 20]
+    SELECT_DICT = {
+        'tr': '#ctl00_cphMain_uctlInquireAdvance_tabResult > tr',
+    }
 
     def __init__(self, kw):
         headers = {
@@ -102,6 +121,11 @@ class InquireAdvanceCreator(BaseCreator):
 
 
 class WoodPriceCreator(BaseCreator):
+    KEYWORD = '{}年{}月'
+    DAY = ['', 25, 26, 26, 25, 25, 25, 25, 27, 25, 25, 26, 25]
+    SELECT_DICT = {
+        'tr_of_2': '#ctl00_Main_q2_gv > tr:nth-of-type(2)',
+    }
 
     def __init__(self):
         headers = {
@@ -131,3 +155,24 @@ class WoodPriceCreator(BaseCreator):
 
     def set_months(self, month):
         self.form_data['ctl00$Main$CompareQueryUi1$q1_ddl_months'] = str(month)
+
+
+class AgrstatBookCreator(BaseCreator):
+    KEYWORD = '{}年糧食供需年報'
+    SELECT_DICT = {
+        'a': '#ctl00_cphMain_uctlBook_repChapter_ctl07_dtlFile_ctl01_lnkFile',
+    }
+
+    def __init__(self, kw):
+        headers = {
+            'Cookie': '_ga=GA1.3.758348857.1534843864; ASP.NET_SessionId=3bv2ewyqvboe2y45g52hri55',
+            'Referer': 'http://agrstat.coa.gov.tw/sdweb/public/book/Book.aspx',
+        }
+        super().__init__(headers)
+        self.form_data = {
+            '__EVENTTARGET': 'ctl00$cphMain$uctlBook$grdBook$ctl03$btnBookName',
+            '__EVENTARGUMENT': '',
+            '__VIEWSTATE': LongText.PROVISION_VIEWSTATE,
+            '__VIEWSTATEGENERATOR': 'AC7AE538',
+            '__EVENTVALIDATION': LongText.PROVISION_EVENTVALIDATION
+        }
