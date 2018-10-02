@@ -158,9 +158,9 @@ class WoodPriceCreator(BaseCreator):
 
 
 class AgrstatBookCreator(BaseCreator):
-    KEYWORD = '{}年'
+    KEYWORD = '{}年糧食供需年報'
     SELECT_DICT = {
-        'a': '#ctl00_cphMain_uctlBook_repChapter_ctl43_dtlFile > span:nth-of-type(2) > a',
+        'a': '#ctl00_cphMain_uctlBook_repChapter_ctl07_dtlFile_ctl01_lnkFile',
     }
 
     def __init__(self, kw):
@@ -170,7 +170,7 @@ class AgrstatBookCreator(BaseCreator):
         }
         super().__init__(headers)
         self.form_data = {
-            '__EVENTTARGET': 'ctl00$cphMain$uctlBook$grdBook$ctl08$btnBookName',
+            '__EVENTTARGET': 'ctl00$cphMain$uctlBook$grdBook$ctl03$btnBookName',
             '__EVENTARGUMENT': '',
             '__VIEWSTATE': LongText.PROVISION_VIEWSTATE,
             '__VIEWSTATEGENERATOR': 'AC7AE538',

@@ -13,11 +13,11 @@ from pprint import pprint
 from selenium import webdriver
 from request_info_creator import (
     AgrstatOfficialInfoCreator as agroff,
-    ForestCreator,
-    SwcbCreator,
+    ForestCreator as fc,
+    SwcbCreator as sc,
     InquireAdvanceCreator as ia,
-    WoodPriceCreator,
-    AgrstatBookCreator
+    WoodPriceCreator as wc,
+    AgrstatBookCreator as abc,
 )
 
 # 西元轉民國年
@@ -25,9 +25,9 @@ YEAR = date.today().year - 1911
 # switch-like
 LAMBDA_DICT = {
     'kw_list': lambda l: [i.get_text().strip().replace(' ', '') for i in l],
-    'file_link_list': lambda url, l: [url + '{}'.format(i.get('href')) for i in l],
+    'file_link_list': lambda url, l: [url.format(i.get('href')) for i in l],
     'specfied_element_text': lambda l, x: l[x].get_text().strip().replace(' ', ''),
-    'specfied_file_link': lambda url, l, x: url + '{}'.format(l[x].get('href')),
+    'specfied_file_link': lambda url, l, x: str(url + l[x].get('href').split('/')[1]),
 }
 
 kws_d = {}
@@ -44,22 +44,22 @@ def start_crawler(key, url) -> None:
     :return: None
     """
 
-    if url.find('OfficialInformation') != -1:
-        extract_agrstat_official_info(key, url)
+    # if url.find('OfficialInformation') != -1:
+    #     extract_agrstat_official_info(key, url)
 
-    elif url.find('swcb') != -1:
-        extract_swcb(key, url)
+    # elif url.find('swcb') != -1:
+    #     extract_swcb(key, url)
 
-    elif url.find('0000575') != -1:
-        extract_forest(key, url)
+    # elif url.find('0000575') != -1:
+    #     extract_forest(key, url)
 
-    elif url.find('InquireAdvance') != -1:
-        extract_inquire_advance(key, url)
+    # elif url.find('InquireAdvance') != -1:
+    #     extract_inquire_advance(key, url)
 
-    elif url.find('woodprice') != -1:
-        extract_wood_price(key, url)
+    # elif url.find('woodprice') != -1:
+    #     extract_wood_price(key, url)
 
-    elif url.find('book') != -1:
+    if url.find('book') != -1:
         extract_agrstat_book(key, url)
 
 
@@ -82,17 +82,16 @@ def extract_agrstat_official_info(key, url) -> None:
                 driver.quit()
                 break
             try:
-                soup = bs(driver.page_source, 'lxml')
-                kws1 = soup.select('tr.Row > td:nth-of-type(3)')
-                kws2 = soup.select('tr.AlternatingRow > td:nth-of-type(3)')
-                for k in kws1+kws2:
-                    k = k.get_text().strip()
+                element, soup = get_html_element(agroff.SELECT_DICT['tr_row1'], agroff.SELECT_DICT['tr_row2'],
+                                                 page_source=driver.page_source, return_soup=True)
+                kw_list = LAMBDA_DICT['kw_list'](element)
+                for k in kw_list:
                     if k in kws_d.keys():
                         log.info('find ' + k + ' at page ' + str(creator.get_page_index()))
                         del kws_d[k]
 
                 # 取得最後一個 td tag 的文字，用來判斷是否為最後一頁或者是更多頁面
-                flag = soup.select('tr.Pager > td > table > tbody > tr > td')[-1].get_text()
+                flag = LAMBDA_DICT['specfied_element_text'](soup(agroff.SELECT_DICT['td']), -1)
                 if flag == '...':
                     if creator.get_page_index().endswith('0'):
                         driver.find_element_by_xpath(
@@ -130,15 +129,14 @@ def extract_swcb(key, url) -> None:
     """
     # 創建關鍵字列表
     kws_l.append(key)
-    if len(kws_l) == SwcbCreator.KEYWORDS_LENTH:
-        creator = SwcbCreator()
+    if len(kws_l) == sc.KEYWORDS_LENTH:
+        creator = sc()
         k_f_l_d = {}
-        soup = bs(requests.get(url, headers=creator.headers).text, 'lxml')
+        element, soup = get_html_element(sc.SELECT_DICT['h3'], method='get', return_soup=True, url=url, creator=creator)
         # 頁面上的關鍵字
-        kw = [i.get_text() for i in soup.select('div.lastList > ul > li > a > h3')]
+        kw = LAMBDA_DICT['kw_list'](element)
         # 連結網址
-        file_link = ['/'.join(url.split('/')[:-1]) + '/{}'.format(i.get('href'))
-                     for i in soup.select('div.lastList > ul > li > a')]
+        file_link = LAMBDA_DICT['file_link_list']('/'.join(url.split('/')[:-1]) + '/{}', soup(sc.SELECT_DICT['a']))
         # 頁面關鍵字如果有在列表裡，則加到字典裡
         for w, f in zip(kw, file_link):
             if any((w.find(i) != -1) for i in kws_l):
@@ -154,13 +152,13 @@ def extract_swcb(key, url) -> None:
 
 def extract_forest(key, url) -> None:
     forest_kws_l.append(key)
-    if len(forest_kws_l) == ForestCreator.KEYWORDS_LENTH:
-        creator = ForestCreator()
+    if len(forest_kws_l) == fc.KEYWORDS_LENTH:
+        creator = fc()
         k_f_l_d = {}
-        soup = bs(requests.get(url, headers=creator.headers).text, 'lxml')
-        kw = [i.get_text() for i in soup.select('#divContent > div.downloadBox > table > tbody > tr > td:nth-of-type(1)')]
-        file_link = ['/'.join(url.split('/')[:-1]) + '{}'.format(i.get('href'))
-                     for i in soup.select('#divContent > div.downloadBox > table > tbody > tr > td > a')]
+        element, soup = get_html_element(fc.SELECT_DICT['td_of_1'], method='get',
+                                         return_soup=True, url=url, creator=creator)
+        kw = LAMBDA_DICT['kw_list'](element)
+        file_link = LAMBDA_DICT['file_link_list']('/'.join(url.split('/')[:-1]) + '{}', soup(fc.SELECT_DICT['a']))
         for w, f in zip(kw, file_link):
             if any((w.find(i) != -1) for i in forest_kws_l):
                 k_f_l_d[w] = f
@@ -216,9 +214,8 @@ def extract_inquire_advance(key, url) -> None:
         keyword = creator.KEYWORD.format(int(flag_month)-2)
     else:
         keyword = creator.KEYWORD.format(int(flag_month)-1)
-    soup = bs(req.post(url, headers=creator.headers, data=creator.form_data).text, 'lxml')
-    last_two_tr = soup.select('#ctl00_cphMain_uctlInquireAdvance_tabResult > tr')[-2]
-    text = last_two_tr.get_text().strip().replace(' ', '')
+    element = get_html_element(ia.SELECT_DICT['tr'], url=url, creator=creator)
+    text = LAMBDA_DICT['specfied_element_text'](element, -2)
     if text.find(keyword) != -1:
         log.info(datetime_start + '-' + datetime_end + '--' + keyword + ' | ' + key + ' : ' + text)
     else:
@@ -232,16 +229,15 @@ def extract_wood_price(key, url) -> None:
     :param url: https://woodprice.forest.gov.tw/Compare/Q_CompareProvinceConiferous.aspx
     :return: None
     """
-    creator = WoodPriceCreator()
+    creator = wc()
     flag_month, datetime_start, datetime_end = datetime_maker(creator.DAY)
 
     def request(i=0):
         creator.set_years(YEAR)
         creator.set_months(int(flag_month) - i)
         format_keyword = creator.KEYWORD.format(YEAR, int(flag_month) - i)
-        soup = bs(req.post(url, headers=creator.headers, data=creator.form_data).content, 'lxml')
-        tr = soup.select('#ctl00_Main_q2_gv > tr:nth-of-type(2)')[0]
-        text = tr.get_text().strip().replace(' ', '')
+        element = get_html_element(wc.SELECT_DICT['tr_of_2'], url=url, creator=creator)
+        text = LAMBDA_DICT['specfied_element_text'](element, 0)
         if i != 0:
             if text.find(format_keyword) != -1:
                 log.info(datetime_start + '-' + datetime_end + '--' + format_keyword + ' | ' + key + ' : ' + text)
@@ -257,25 +253,50 @@ def extract_wood_price(key, url) -> None:
 
 def extract_agrstat_book(key, url) -> None:
     now = time.strftime('%m%d%H%M')
-    creator = AgrstatBookCreator(key)
-    soup = bs(req.post(url, headers=creator.headers, data=creator.form_data).content, 'lxml')
-    li = soup.select('#ctl00_cphMain_uctlBook_repChapter_ctl43_dtlFile > span:nth-of-type(2) > a')
+    creator = abc(key)
+    element, soup = get_html_element(abc.SELECT_DICT['a'], return_soup=True, url=url, creator=creator)
+    file_link = LAMBDA_DICT['specfied_file_link']('/'.join(url.split('/')[:-1]) + '/', element, 0)
     if key == '糧食供需統計':
         specfied_date = '10011700'
         if specfied_date < now:
             format_keyword = creator.KEYWORD.format(YEAR - 1)
         else:
             format_keyword = creator.KEYWORD.format(YEAR - 2)
+        find, text = pdfhandler.extract_text(io.BytesIO(requests.get(file_link).content), format_keyword)
+        if find:
+            log.info(specfied_date + '--' + format_keyword + ' | ' + key + ' : ' + text)
+        else:
+            err_log.warning(specfied_date + '--' + format_keyword + ' | ' + key + ' : ' + text)
 
-        if li:
-            a = li[0].get('href')
-            file_link = '/'.join(url.split('/')[:-1]) + '/' + a.split('/')[1]
-            find, text = pdfhandler.extract_text(io.BytesIO(req.get(file_link).content),
-                                                 creator.KEYWORD.format(format_keyword))
-            if find:
-                log.info(specfied_date + '--' + format_keyword + ' | ' + key + ' : ' + text)
-            else:
-                log.warning(specfied_date + '--' + format_keyword + ' | ' + key + ' : ' + text)
+
+def get_html_element(*args, method='post', page_source=None, return_soup=False, **kwargs):
+    """
+    get html element.
+    :param args: str, soup selector, 但可能不只取得一個元素
+    :param method: post or get
+    :param page_source: if use selenium, pass driver.page_source
+    :param return_soup: bool, if True, 代表要回傳 soup (reuse)
+    :param kwargs: url and creator
+    :return: list or tuple
+    """
+    element_list = []
+
+    if page_source is not None:
+        content = page_source
+    else:
+        creator = kwargs['creator']
+        if method != 'post':
+            content = req.get(kwargs['url'], headers=creator.headers).text
+        else:
+            content = req.post(kwargs['url'], headers=creator.headers, data=creator.form_data).content
+
+    soup = bs(content, 'lxml')
+    for i in args:
+        element_list.extend(soup.select(i))
+    if return_soup:
+        return element_list, lambda x: soup.select(x)
+    else:
+        return element_list
 
 
 def find_kw(link, keyword, file_type='excel') -> tuple:
