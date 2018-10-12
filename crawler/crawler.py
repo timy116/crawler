@@ -13,6 +13,7 @@ from pprint import pprint
 from selenium import webdriver
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.wait import WebDriverWait
+from log import SimpleLog as sl
 from request_info_creator import (
     AgrstatOfficialInfoCreator as agroff,
     ForestCreator as fc,
@@ -49,28 +50,28 @@ def start_crawler(key, url) -> None:
     :return: None
     """
 
-    # if url.find('OfficialInformation') != -1:
-    #     extract_agrstat_official_info(key, url)
-    #
+    if url.find('OfficialInformation') != -1:
+        extract_agrstat_official_info(key, url)
+
     # elif url.find('swcb') != -1:
     #     extract_swcb(key, url)
-    #
-    # elif url.find('0000575') != -1:
-    #     extract_forest(key, url)
-    #
-    # elif url.find('InquireAdvance') != -1:
-    #     extract_inquire_advance(key, url)
-    #
-    # elif url.find('woodprice') != -1:
-    #     extract_wood_price(key, url)
-    #
-    # elif url.find('book') != -1:
-    #     extract_agrstat_book(key, url)
-    #
-    # elif url.find('apis.afa.gov.tw') != -1:
-    #     extract_apis_afa(key, url)
 
-    if url.find('price.naif.org.tw') != -1:
+    elif url.find('0000575') != -1:
+        extract_forest(key, url)
+
+    elif url.find('InquireAdvance') != -1:
+        extract_inquire_advance(key, url)
+
+    elif url.find('woodprice') != -1:
+        extract_wood_price(key, url)
+
+    elif url.find('book') != -1:
+        extract_agrstat_book(key, url)
+
+    elif url.find('apis.afa.gov.tw') != -1:
+        extract_apis_afa(key, url)
+
+    elif url.find('price.naif.org.tw') != -1:
         extract_price_naif(key, url)
 
 
@@ -98,7 +99,7 @@ def extract_agrstat_official_info(key, url) -> None:
                 kw_list = LAMBDA_DICT['kw_list'](element)
                 for k in kw_list:
                     if k in kws_d.keys():
-                        log.info('find ' + k + ' at page ' + str(creator.get_page_index()))
+                        log.info('find ', k, ' at page ', creator.get_page_index(), unpacking=False)
                         del kws_d[k]
 
                 # 取得最後一個 td tag 的文字，用來判斷是否為最後一頁或者是更多頁面
@@ -113,7 +114,7 @@ def extract_agrstat_official_info(key, url) -> None:
                     if creator.get_page_index() == flag:
                         driver.quit()
                         if len(kws_d) != 0:
-                            err_log.warning('not found keyword: ' + str(kws_d.keys()))
+                            err_log.warning('not found keyword: ', kws_d.keys(), unpacking=False)
                         print('Page end, ', creator.get_page_index(), 'pages')
                         break
                 creator.next_page()
@@ -125,7 +126,7 @@ def extract_agrstat_official_info(key, url) -> None:
             except Exception:
                 driver.quit()
                 t, v, tr = sys.exc_info()
-                err_log.error('error occurred.\n' + str(t) + '\n' + str(v))
+                err_log.error('error occurred.\t', t, '\t', v)
                 break
 
 
@@ -194,20 +195,22 @@ def extract_forest(key, url) -> None:
                     format_keyword = keyword.format(YEAR, 3)
                     datetime_start = month[10]
                     datetime_end = month[1]
+                sl.set_msg(datetime_start, datetime_end)
                 find, text = pdfhandler.extract_text(io.BytesIO(requests.get(v).content), format_keyword)
                 if find:
-                    log.info(datetime_start + '-' + datetime_end + '--' + format_keyword + ' | ' + k + ' : ' + text)
+                    log.info(format_keyword, k, text)
                 else:
-                    err_log.warning(datetime_start + '-' + datetime_end + '--' + format_keyword + ' | ' + k + ' : ' + text)
+                    err_log.warning(format_keyword, k, text)
+
             if k == '林務局森林遊樂區收入':
                 keyword = '{}年{}月'
                 flag_month, datetime_start, datetime_end = datetime_maker(creator.DAY)
                 format_keyword = keyword.format(YEAR, int(flag_month) - 1)
                 find, text = find_kw(v, format_keyword, 'ods')
                 if find:
-                    log.info(datetime_start + '-' + datetime_end + '--' + format_keyword + ' | ' + k + ' : ' + text)
+                    log.info(format_keyword, k, text)
                 else:
-                    err_log.warning(datetime_start + '-' + datetime_end + '--' + format_keyword + ' | ' + key + ' : ' + text)
+                    err_log.warning(format_keyword, key, text)
 
 
 def extract_inquire_advance(key, url) -> None:
@@ -228,9 +231,9 @@ def extract_inquire_advance(key, url) -> None:
     element = get_html_element(ia.SELECT_DICT['tr'], url=url, creator=creator)
     text = LAMBDA_DICT['specfied_element_text'](element, -2)
     if text.find(keyword) != -1:
-        log.info(datetime_start + '-' + datetime_end + '--' + keyword + ' | ' + key + ' : ' + text)
+        log.info(keyword, key, text)
     else:
-        err_log.warning(datetime_start + '-' + datetime_end + '--' + keyword + ' | ' + key + ' : ' + text)
+        err_log.warning(keyword, key, text)
 
 
 def extract_wood_price(key, url) -> None:
@@ -251,13 +254,13 @@ def extract_wood_price(key, url) -> None:
         text = LAMBDA_DICT['specfied_element_text'](element, 0)
         if i != 0:
             if text.find(format_keyword) != -1:
-                log.info(datetime_start + '-' + datetime_end + '--' + format_keyword + ' | ' + key + ' : ' + text)
+                log.info(format_keyword, key, text)
             else:
-                err_log.warning(datetime_start + '-' + datetime_end + '--' + format_keyword + ' | ' + key + ' : ' + text)
+                err_log.warning(format_keyword, key, text)
         else:
             if text.find(format_keyword) != -1:
-                err_log.warning(datetime_start + '-' + datetime_end + '--' +
-                                creator.KEYWORD.format(YEAR, int(flag_month) - 1) + ' | ' + key + ' : ' + text)
+                sl.set_msg(datetime_start, datetime_end)
+                err_log.warning(creator.KEYWORD.format(YEAR, int(flag_month) - 1), key, text)
     request(1)
     request()
 
@@ -275,9 +278,9 @@ def extract_agrstat_book(key, url) -> None:
             format_keyword = creator.KEYWORD.format(YEAR - 2)
         find, text = pdfhandler.extract_text(io.BytesIO(requests.get(file_link).content), format_keyword)
         if find:
-            log.info(specfied_date + '--' + format_keyword + ' | ' + key + ' : ' + text)
+            log.info(specfied_date + '--' + format_keyword + ' | ' + key + ' : ' + text, unpacking=False)
         else:
-            err_log.warning(specfied_date + '--' + format_keyword + ' | ' + key + ' : ' + text)
+            err_log.warning(specfied_date + '--' + format_keyword + ' | ' + key + ' : ' + text, unpacking=False)
 
 
 def extract_apis_afa(key, url) -> None:
@@ -295,14 +298,11 @@ def extract_apis_afa(key, url) -> None:
         element = get_html_element(aac.SELECT_DICT['tr'], page_source=driver.page_source)
         texts = LAMBDA_DICT['kw_list'](element)
         if texts[int(flag_month)-1].find('-') == -1:
-            log.info(datetime_start + '-' + datetime_end + '--' + format_keyword + ' | ' + key + ' : ' +
-                     texts[int(flag_month)-1])
+            log.info(format_keyword, key, texts[int(flag_month)-1])
         else:
-            err_log.warning(datetime_start + '-' + datetime_end + '--' + format_keyword + ' | ' + key + ' : ' +
-                            texts[int(flag_month) - 1])
+            err_log.warning(format_keyword, key, texts[int(flag_month) - 1])
         if texts[int(flag_month)].find('-') == -1:
-            err_log.warning(datetime_start + '-' + datetime_end + '--' + format_keyword + ' | ' + key + ' : ' +
-                            texts[int(flag_month)])
+            err_log.warning(format_keyword, key, texts[int(flag_month)])
     finally:
         driver.quit()
 
@@ -312,10 +312,9 @@ def extract_price_naif(key, url):
     soup = bs(req.get(url).text, 'lxml')
     value = soup.select('#ContentPlaceHolder_content_DropDownList_month > option')[0].get_text()
     if int(value) == int(flag_month)-1:
-        log.info(datetime_start + '-' + datetime_end + '--' + str(int(flag_month)-1)+'月' + ' | ' + key + ' : ' + value)
+        log.info(str(int(flag_month)-1)+'月', key, value)
     else:
-        err_log.warning(datetime_start + '-' + datetime_end + '--' + str(int(flag_month)-1)+'月' + ' | ' + key + ' : '
-                        + value)
+        err_log.warning(str(int(flag_month)-1)+'月', key, value)
 
 
 def get_html_element(*args, method='post', page_source=None, return_soup=False, **kwargs):
@@ -399,6 +398,7 @@ def datetime_maker(day) -> tuple:
     next_flag_month = month if dateline.format(month, day[int(month)]) > now else str(int(month) + 1).rjust(2, '0')
     datetime_start = dateline.format(flag_month, str(day[int(flag_month)]).rjust(2, '0'))
     datetime_end = dateline.format(next_flag_month, str(day[int(next_flag_month)]).rjust(2, '0'))
+    sl.set_msg(datetime_start, datetime_end)
     return flag_month, datetime_start, datetime_end
 
 

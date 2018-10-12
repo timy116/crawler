@@ -1,7 +1,10 @@
 import logging
+from functools import reduce
 
 
 class SimpleLog(object):
+    msg_format = '{} - {} -> {} | {} : {}'
+    msg_l = []
 
     def __init__(self, file_name):
         self.logger = logging.getLogger(file_name)
@@ -19,14 +22,27 @@ class SimpleLog(object):
     def debug(self, msg):
         self.logger.debug(msg)
 
-    def info(self, msg):
-        self.logger.info(msg)
+    def info(self, *msg, unpacking=True):
+        if unpacking:
+            SimpleLog.msg_l.extend(list(msg))
+            message = SimpleLog.msg_format.format(*SimpleLog.msg_l)
+        else:
+            message = reduce((lambda a, b: a + b), [str(i) for i in msg])
+        self.logger.info(message)
+        SimpleLog.msg_l.clear()
 
-    def warning(self, msg):
-        self.logger.warning(msg)
+    def warning(self, *msg, unpacking=True):
+        if unpacking:
+            SimpleLog.msg_l.extend(list(msg))
+            message = SimpleLog.msg_format.format(*SimpleLog.msg_l)
+        else:
+            message = reduce((lambda a, b: a + b), [str(i) for i in msg])
+        self.logger.warning(message)
+        SimpleLog.msg_l.clear()
 
-    def error(self, msg):
-        self.logger.error(msg)
+    def error(self, *msg):
+        message = reduce((lambda a, b: a + b), [str(i) for i in msg])
+        self.logger.error(message)
 
     def critical(self, msg):
         self.logger.critical(msg)
@@ -36,6 +52,10 @@ class SimpleLog(object):
 
     def set_level(self, level):
         self.logger.setLevel(level)
+
+    @staticmethod
+    def set_msg(*args):
+        SimpleLog.msg_l.extend(list(args))
 
     @staticmethod
     def disable():
