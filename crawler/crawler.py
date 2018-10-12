@@ -11,6 +11,8 @@ from datetime import date
 from log import log, err_log
 from pprint import pprint
 from selenium import webdriver
+from selenium.webdriver.support.ui import Select
+from selenium.webdriver.support.wait import WebDriverWait
 from request_info_creator import (
     AgrstatOfficialInfoCreator as agroff,
     ForestCreator as fc,
@@ -18,10 +20,12 @@ from request_info_creator import (
     InquireAdvanceCreator as ia,
     WoodPriceCreator as wc,
     AgrstatBookCreator as abc,
+    ApisAfaCreator as aac,
 )
 
+AD_YEAR = date.today().year
 # 西元轉民國年
-YEAR = date.today().year - 1911
+YEAR = AD_YEAR - 1911
 # switch-like
 LAMBDA_DICT = {
     'kw_list': lambda l: [i.get_text().strip().replace(' ', '') for i in l],
@@ -46,21 +50,24 @@ def start_crawler(key, url) -> None:
 
     # if url.find('OfficialInformation') != -1:
     #     extract_agrstat_official_info(key, url)
-
+    #
     # elif url.find('swcb') != -1:
     #     extract_swcb(key, url)
-
+    #
     # elif url.find('0000575') != -1:
     #     extract_forest(key, url)
-
+    #
     # elif url.find('InquireAdvance') != -1:
     #     extract_inquire_advance(key, url)
-
+    #
     # elif url.find('woodprice') != -1:
     #     extract_wood_price(key, url)
+    #
+    # elif url.find('book') != -1:
+    #     extract_agrstat_book(key, url)
 
-    if url.find('book') != -1:
-        extract_agrstat_book(key, url)
+    if url.find('apis.afa.gov.tw') != -1:
+        extract_apis_afa(key, url)
 
 
 def extract_agrstat_official_info(key, url) -> None:
@@ -269,6 +276,33 @@ def extract_agrstat_book(key, url) -> None:
             err_log.warning(specfied_date + '--' + format_keyword + ' | ' + key + ' : ' + text)
 
 
+def extract_apis_afa(key, url) -> None:
+    flag_month, datetime_start, datetime_end = datetime_maker(aac.DAY)
+    format_keyword = aac.KEYWORD.format(AD_YEAR, int(flag_month) - 1)
+    driver = get_web_driver()
+    try:
+        driver.get(url)
+        Select(driver.find_element_by_id(aac.SELECT_DICT['month_start'])).select_by_value('1')
+        Select(driver.find_element_by_id(aac.SELECT_DICT['month_end'])).select_by_value('12')
+        driver.find_element_by_id(aac.SELECT_DICT['check_box_grape']).click()
+        driver.find_element_by_class_name(aac.SELECT_DICT['search_button']).click()
+        WebDriverWait(driver, 5).until(lambda d: len(d.window_handles) == 2)
+        driver.switch_to_window(driver.window_handles[1])
+        element = get_html_element(aac.SELECT_DICT['tr'], page_source=driver.page_source)
+        texts = LAMBDA_DICT['kw_list'](element)
+        if texts[int(flag_month)-1].find('-') == -1:
+            log.info(datetime_start + '-' + datetime_end + '--' + format_keyword + ' | ' + key + ' : ' +
+                     texts[int(flag_month)-1])
+        else:
+            err_log.warning(datetime_start + '-' + datetime_end + '--' + format_keyword + ' | ' + key + ' : ' +
+                            texts[int(flag_month) - 1])
+        if texts[int(flag_month)].find('-') == -1:
+            err_log.warning(datetime_start + '-' + datetime_end + '--' + format_keyword + ' | ' + key + ' : ' +
+                            texts[int(flag_month)])
+    finally:
+        driver.quit()
+
+
 def get_html_element(*args, method='post', page_source=None, return_soup=False, **kwargs):
     """
     get html element.
@@ -348,8 +382,8 @@ def datetime_maker(day) -> tuple:
     month = str(date.today().month).rjust(2, '0')
     flag_month = month if dateline.format(month, day[int(month)]) < now else str(int(month) - 1).rjust(2, '0')
     next_flag_month = month if dateline.format(month, day[int(month)]) > now else str(int(month) + 1).rjust(2, '0')
-    datetime_start = dateline.format(flag_month, day[int(month)])
-    datetime_end = dateline.format(next_flag_month, day[int(next_flag_month)])
+    datetime_start = dateline.format(flag_month, str(day[int(flag_month)]).rjust(2, '0'))
+    datetime_end = dateline.format(next_flag_month, str(day[int(next_flag_month)]).rjust(2, '0'))
     return flag_month, datetime_start, datetime_end
 
 
