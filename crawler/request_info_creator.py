@@ -188,3 +188,7 @@ class ApisAfaCreator(BaseCreator):
         'check_box_grape': 'WR1_1_PRMG_02_54',
         'search_button': 'CSS_ABS_NormalLink',
     }
+
+
+class PirceNaifCreator(BaseCreator):
+    DAY = ['', 15, 21, 15, 16, 15, 15, 16, 15, 17, 15, 15, 17]

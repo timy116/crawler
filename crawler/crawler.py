@@ -21,6 +21,7 @@ from request_info_creator import (
     WoodPriceCreator as wc,
     AgrstatBookCreator as abc,
     ApisAfaCreator as aac,
+    PirceNaifCreator as pnc,
 )
 
 AD_YEAR = date.today().year
@@ -65,9 +66,12 @@ def start_crawler(key, url) -> None:
     #
     # elif url.find('book') != -1:
     #     extract_agrstat_book(key, url)
+    #
+    # elif url.find('apis.afa.gov.tw') != -1:
+    #     extract_apis_afa(key, url)
 
-    if url.find('apis.afa.gov.tw') != -1:
-        extract_apis_afa(key, url)
+    if url.find('price.naif.org.tw') != -1:
+        extract_price_naif(key, url)
 
 
 def extract_agrstat_official_info(key, url) -> None:
@@ -301,6 +305,17 @@ def extract_apis_afa(key, url) -> None:
                             texts[int(flag_month)])
     finally:
         driver.quit()
+
+
+def extract_price_naif(key, url):
+    flag_month, datetime_start, datetime_end = datetime_maker(pnc.DAY)
+    soup = bs(req.get(url).text, 'lxml')
+    value = soup.select('#ContentPlaceHolder_content_DropDownList_month > option')[0].get_text()
+    if int(value) == int(flag_month)-1:
+        log.info(datetime_start + '-' + datetime_end + '--' + str(int(flag_month)-1)+'月' + ' | ' + key + ' : ' + value)
+    else:
+        err_log.warning(datetime_start + '-' + datetime_end + '--' + str(int(flag_month)-1)+'月' + ' | ' + key + ' : '
+                        + value)
 
 
 def get_html_element(*args, method='post', page_source=None, return_soup=False, **kwargs):
