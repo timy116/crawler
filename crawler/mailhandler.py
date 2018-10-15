@@ -9,20 +9,22 @@ USER = linecache.getline(PATH, 1)
 PWD = linecache.getline(PATH, 2)
 MAIL_TO = linecache.getline(PATH, 6)
 MSG_FORMAT = """
-此信件為自動發送，請勿直接回覆。
-
 Warning:
 名稱：{}
 網址：{}
-{} - {} 期間需為 {} 份資料, 檢測網站已上傳 {} 份資料
+{} - {} 期間為 {} 資料, 檢測網站{}
 """
-
+DATA_ALREADY_UPDATE = '已上傳 {} 資料'
+DATA_UPDATE_YET = '尚未上傳'
 msg_l = []
 
 
-def set_msg(*args):
+def set_msg(already, *args):
     date_range = sl.msg_l
-    msg_l.append([args[0], args[1], date_range[0], date_range[1], args[2], args[3]])
+    if already:
+        msg_l.append([args[0], args[1], date_range[0], date_range[1], args[2], DATA_ALREADY_UPDATE.format(args[3])])
+    else:
+        msg_l.append([args[0], args[1], date_range[0], date_range[1], args[2], DATA_UPDATE_YET])
 
 
 def send_mail():
@@ -38,7 +40,7 @@ def send_mail():
             data += MSG_FORMAT.format(*i) + '\n'
         try:
             server.login(USER, PWD)
-            msg = MIMEText(data)
+            msg = MIMEText('此信件為自動發送，請勿直接回覆。\n' + data)
             msg['Subject'] = SUBJECT
             msg['From'] = USER
             msg['To'] = MAIL_TO
