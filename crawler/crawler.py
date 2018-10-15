@@ -1,4 +1,5 @@
 import io
+import mailhandler
 import requests
 import sys
 import time
@@ -9,6 +10,7 @@ from bs4 import BeautifulSoup as bs
 from const import Base
 from datetime import date
 from log import log, err_log
+from mailhandler import msg_l
 from pprint import pprint
 from selenium import webdriver
 from selenium.webdriver.support.ui import Select
@@ -50,29 +52,29 @@ def start_crawler(key, url) -> None:
     :return: None
     """
 
-    if url.find('OfficialInformation') != -1:
-        extract_agrstat_official_info(key, url)
+    # if url.find('OfficialInformation') != -1:
+    #     extract_agrstat_official_info(key, url)
 
     # elif url.find('swcb') != -1:
     #     extract_swcb(key, url)
 
-    elif url.find('0000575') != -1:
-        extract_forest(key, url)
+    # elif url.find('0000575') != -1:
+    #     extract_forest(key, url)
+    #
+    # elif url.find('InquireAdvance') != -1:
+    #     extract_inquire_advance(key, url)
 
-    elif url.find('InquireAdvance') != -1:
-        extract_inquire_advance(key, url)
-
-    elif url.find('woodprice') != -1:
+    if url.find('woodprice') != -1:
         extract_wood_price(key, url)
 
-    elif url.find('book') != -1:
-        extract_agrstat_book(key, url)
-
-    elif url.find('apis.afa.gov.tw') != -1:
-        extract_apis_afa(key, url)
-
-    elif url.find('price.naif.org.tw') != -1:
-        extract_price_naif(key, url)
+    # elif url.find('book') != -1:
+    #     extract_agrstat_book(key, url)
+    #
+    # elif url.find('apis.afa.gov.tw') != -1:
+    #     extract_apis_afa(key, url)
+    #
+    # elif url.find('price.naif.org.tw') != -1:
+    #     extract_price_naif(key, url)
 
 
 def extract_agrstat_official_info(key, url) -> None:
@@ -256,10 +258,12 @@ def extract_wood_price(key, url) -> None:
             if text.find(format_keyword) != -1:
                 log.info(format_keyword, key, text)
             else:
+                mailhandler.set_msg(key, url, format_keyword, text)
                 err_log.warning(format_keyword, key, text)
         else:
             if text.find(format_keyword) != -1:
                 sl.set_msg(datetime_start, datetime_end)
+                mailhandler.set_msg(key, url, creator.KEYWORD.format(YEAR, int(flag_month)-1), text)
                 err_log.warning(creator.KEYWORD.format(YEAR, int(flag_month) - 1), key, text)
     request(1)
     request()

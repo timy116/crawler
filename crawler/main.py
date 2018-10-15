@@ -2,6 +2,7 @@ import crawler
 import xlrd
 from const import Base
 from collections import OrderedDict
+from mailhandler import send_mail
 
 
 def extract_url(path) -> dict:
@@ -14,3 +15,4 @@ if __name__ == '__main__':
     url_dict = extract_url(Base.EXCEL_PATH)
     for k, v in url_dict.items():
         crawler.start_crawler(k, v)
+    send_mail()
