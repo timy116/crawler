@@ -1,4 +1,5 @@
 import io
+import mailhandler
 import requests
 import sys
 import time
@@ -50,27 +51,27 @@ def start_crawler(key, url) -> None:
     :return: None
     """
 
-    if url.find('OfficialInformation') != -1:
-        extract_agrstat_official_info(key, url)
+    # if url.find('OfficialInformation') != -1:
+    #     extract_agrstat_official_info(key, url)
 
     # elif url.find('swcb') != -1:
     #     extract_swcb(key, url)
 
-    elif url.find('0000575') != -1:
-        extract_forest(key, url)
+    # elif url.find('0000575') != -1:
+    #     extract_forest(key, url)
+    #
+    # elif url.find('InquireAdvance') != -1:
+    #     extract_inquire_advance(key, url)
 
-    elif url.find('InquireAdvance') != -1:
-        extract_inquire_advance(key, url)
-
-    elif url.find('woodprice') != -1:
+    if url.find('woodprice') != -1:
         extract_wood_price(key, url)
 
-    elif url.find('book') != -1:
-        extract_agrstat_book(key, url)
-
+    # elif url.find('book') != -1:
+    #     extract_agrstat_book(key, url)
+    #
     elif url.find('apis.afa.gov.tw') != -1:
         extract_apis_afa(key, url)
-
+    #
     elif url.find('price.naif.org.tw') != -1:
         extract_price_naif(key, url)
 
@@ -246,23 +247,25 @@ def extract_wood_price(key, url) -> None:
     creator = wc()
     flag_month, datetime_start, datetime_end = datetime_maker(creator.DAY)
 
-    def request(i=0):
+    # 確認前一個月、當月、下個月是否有資料
+    for i in range(1, -2, -1):
         creator.set_years(YEAR)
         creator.set_months(int(flag_month) - i)
-        format_keyword = creator.KEYWORD.format(YEAR, int(flag_month) - i)
+        format_keyword = wc.KEYWORD.format(YEAR, int(flag_month) - i)
         element = get_html_element(wc.SELECT_DICT['tr_of_2'], url=url, creator=creator)
         text = LAMBDA_DICT['specfied_element_text'](element, 0)
-        if i != 0:
+        if i == 1:
             if text.find(format_keyword) != -1:
                 log.info(format_keyword, key, text)
             else:
+                mailhandler.set_msg(False, key, url, format_keyword, text)
                 err_log.warning(format_keyword, key, text)
         else:
             if text.find(format_keyword) != -1:
+                kw = wc.KEYWORD.format(YEAR, int(flag_month)-1)
                 sl.set_msg(datetime_start, datetime_end)
-                err_log.warning(creator.KEYWORD.format(YEAR, int(flag_month) - 1), key, text)
-    request(1)
-    request()
+                mailhandler.set_msg(True, key, url, kw, text)
+                err_log.warning(kw, key, text)
 
 
 def extract_agrstat_book(key, url) -> None:
@@ -271,16 +274,16 @@ def extract_agrstat_book(key, url) -> None:
     element, soup = get_html_element(abc.SELECT_DICT['a'], return_soup=True, url=url, creator=creator)
     file_link = LAMBDA_DICT['specfied_file_link']('/'.join(url.split('/')[:-1]) + '/', element, 0)
     if key == '糧食供需統計':
-        specfied_date = '10011700'
-        if specfied_date < now:
+        specified_date = '10011700'
+        if specified_date < now:
             format_keyword = creator.KEYWORD.format(YEAR - 1)
         else:
             format_keyword = creator.KEYWORD.format(YEAR - 2)
         find, text = pdfhandler.extract_text(io.BytesIO(requests.get(file_link).content), format_keyword)
         if find:
-            log.info(specfied_date + '--' + format_keyword + ' | ' + key + ' : ' + text, unpacking=False)
+            log.info(specified_date + '--' + format_keyword + ' | ' + key + ' : ' + text, unpacking=False)
         else:
-            err_log.warning(specfied_date + '--' + format_keyword + ' | ' + key + ' : ' + text, unpacking=False)
+            err_log.warning(specified_date + '--' + format_keyword + ' | ' + key + ' : ' + text, unpacking=False)
 
 
 def extract_apis_afa(key, url) -> None:
@@ -289,19 +292,29 @@ def extract_apis_afa(key, url) -> None:
     driver = get_web_driver()
     try:
         driver.get(url)
+        # 選擇開始月份
         Select(driver.find_element_by_id(aac.SELECT_DICT['month_start'])).select_by_value('1')
+        # 選擇結束月份
         Select(driver.find_element_by_id(aac.SELECT_DICT['month_end'])).select_by_value('12')
+        # 選擇指定品項(葡萄)
         driver.find_element_by_id(aac.SELECT_DICT['check_box_grape']).click()
+        # 按下搜尋
         driver.find_element_by_class_name(aac.SELECT_DICT['search_button']).click()
+        # 等到 time out(5s)
         WebDriverWait(driver, 5).until(lambda d: len(d.window_handles) == 2)
+        # 切換到跳出的頁面
         driver.switch_to_window(driver.window_handles[1])
         element = get_html_element(aac.SELECT_DICT['tr'], page_source=driver.page_source)
         texts = LAMBDA_DICT['kw_list'](element)
+        # 判斷是否為 當月-1 的月份資料
         if texts[int(flag_month)-1].find('-') == -1:
             log.info(format_keyword, key, texts[int(flag_month)-1])
         else:
-            err_log.warning(format_keyword, key, texts[int(flag_month) - 1])
+            mailhandler.set_msg(False, key, url, str(texts[int(flag_month)-1])+'月')
+            err_log.warning(format_keyword, key, texts[int(flag_month)-1])
+        # 判斷是否偷跑(是否為 當月 資料)
         if texts[int(flag_month)].find('-') == -1:
+            mailhandler.set_msg(True, key, url, str(texts[int(flag_month)-1])+'月', str(texts[int(flag_month)])+'月')
             err_log.warning(format_keyword, key, texts[int(flag_month)])
     finally:
         driver.quit()
@@ -314,6 +327,7 @@ def extract_price_naif(key, url):
     if int(value) == int(flag_month)-1:
         log.info(str(int(flag_month)-1)+'月', key, value)
     else:
+        mailhandler.set_msg(False, key, url, str(int(flag_month)-1)+'月')
         err_log.warning(str(int(flag_month)-1)+'月', key, value)
 
 
