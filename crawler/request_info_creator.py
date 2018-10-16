@@ -66,7 +66,7 @@ class SwcbCreator(BaseCreator):
 
 
 class ForestCreator(BaseCreator):
-    KEYWORDS_LENTH = 6
+    KEYWORDS_LENTH = 7
     KEYWORD = '中華民國{}年度'
     DAY = ['', 25, 26, 26, 25, 25, 25, 25, 27, 25, 25, 26, 25]
     SELECT_DICT = {
@@ -78,6 +78,7 @@ class ForestCreator(BaseCreator):
 class InquireAdvanceCreator(BaseCreator):
     KEYWORD = '{}月'
     DAY = ['', 21, 20, 20, 22, 20, 20, 22, 20, 20, 22, 20, 20]
+    ELDER_DAY = ['', 22, 21, 20, 20, 21, 20, 20, 20, 20, 15, 15, 17]
     SELECT_DICT = {
         'tr': '#ctl00_cphMain_uctlInquireAdvance_tabResult > tr',
     }

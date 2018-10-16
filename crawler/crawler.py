@@ -53,27 +53,27 @@ def start_crawler(key, url) -> None:
 
     # if url.find('OfficialInformation') != -1:
     #     extract_agrstat_official_info(key, url)
-
-    # elif url.find('swcb') != -1:
-    #     extract_swcb(key, url)
-
+    #
+    if url.find('swcb') != -1:
+        extract_swcb(key, url)
+    #
     # elif url.find('0000575') != -1:
     #     extract_forest(key, url)
     #
     # elif url.find('InquireAdvance') != -1:
     #     extract_inquire_advance(key, url)
-
-    if url.find('woodprice') != -1:
-        extract_wood_price(key, url)
-
+    #
+    # elif url.find('woodprice') != -1:
+    #     extract_wood_price(key, url)
+    #
     # elif url.find('book') != -1:
     #     extract_agrstat_book(key, url)
-    #
-    elif url.find('apis.afa.gov.tw') != -1:
-        extract_apis_afa(key, url)
-    #
-    elif url.find('price.naif.org.tw') != -1:
-        extract_price_naif(key, url)
+    # #
+    # elif url.find('apis.afa.gov.tw') != -1:
+    #     extract_apis_afa(key, url)
+    # #
+    # elif url.find('price.naif.org.tw') != -1:
+    #     extract_price_naif(key, url)
 
 
 def extract_agrstat_official_info(key, url) -> None:
@@ -140,7 +140,6 @@ def extract_swcb(key, url) -> None:
     :param url: 網址，解析用
     :return: None
     """
-    # 創建關鍵字列表
     kws_l.append(key)
     if len(kws_l) == sc.KEYWORDS_LENTH:
         creator = sc()
@@ -157,10 +156,17 @@ def extract_swcb(key, url) -> None:
 
         # 迭代搜尋關鍵字
         for k, v in k_f_l_d.items():
-            if find_kw(v, creator.KEYWORD.format(str(YEAR - 1))):
-                log.info(k + '年度正確')
+            flag_year, datetime_start, datetime_end = datetime_maker()
+            format_keyword = sc.KEYWORD.format(flag_year-1)
+            find, text = find_kw(v, format_keyword)
+            if find:
+                log.info(format_keyword, k, text)
             else:
-                err_log.warning(k + ' 未在指定時間內上傳')
+                if text < format_keyword:
+                    mailhandler.set_msg(False, k, url, format_keyword)
+                else:
+                    mailhandler.set_msg(k, url, format_keyword, text)
+                err_log.warning(format_keyword, k, text)
 
 
 def extract_forest(key, url) -> None:
@@ -205,7 +211,7 @@ def extract_forest(key, url) -> None:
 
             if k == '林務局森林遊樂區收入':
                 keyword = '{}年{}月'
-                flag_month, datetime_start, datetime_end = datetime_maker(creator.DAY)
+                flag_month, datetime_start, datetime_end = datetime_maker(day=fc.DAY)
                 format_keyword = keyword.format(YEAR, int(flag_month) - 1)
                 find, text = find_kw(v, format_keyword, 'ods')
                 if find:
@@ -223,17 +229,19 @@ def extract_inquire_advance(key, url) -> None:
     :return: None
     """
     creator = ia(key)
-    flag_month, datetime_start, datetime_end = datetime_maker(creator.DAY)
 
     if key == '老年農民福利津貼核付人數' or key == '老年農民福利津貼核付金額':
-        keyword = creator.KEYWORD.format(int(flag_month)-2)
+        flag_month, datetime_start, datetime_end = datetime_maker(day=ia.ELDER_DAY)
+        keyword = ia.KEYWORD.format(int(flag_month)-2)
     else:
-        keyword = creator.KEYWORD.format(int(flag_month)-1)
+        flag_month, datetime_start, datetime_end = datetime_maker(day=ia.DAY)
+        keyword = ia.KEYWORD.format(int(flag_month)-1)
     element = get_html_element(ia.SELECT_DICT['tr'], url=url, creator=creator)
     text = LAMBDA_DICT['specfied_element_text'](element, -2)
     if text.find(keyword) != -1:
         log.info(keyword, key, text)
     else:
+        mailhandler.set_msg(False, key, url, keyword)
         err_log.warning(keyword, key, text)
 
 
@@ -245,7 +253,7 @@ def extract_wood_price(key, url) -> None:
     :return: None
     """
     creator = wc()
-    flag_month, datetime_start, datetime_end = datetime_maker(creator.DAY)
+    flag_month, datetime_start, datetime_end = datetime_maker(day=creator.DAY)
 
     # 確認前一個月、當月、下個月是否有資料
     for i in range(1, -2, -1):
@@ -287,7 +295,7 @@ def extract_agrstat_book(key, url) -> None:
 
 
 def extract_apis_afa(key, url) -> None:
-    flag_month, datetime_start, datetime_end = datetime_maker(aac.DAY)
+    flag_month, datetime_start, datetime_end = datetime_maker(day=aac.DAY)
     format_keyword = aac.KEYWORD.format(AD_YEAR, int(flag_month) - 1)
     driver = get_web_driver()
     try:
@@ -321,7 +329,7 @@ def extract_apis_afa(key, url) -> None:
 
 
 def extract_price_naif(key, url):
-    flag_month, datetime_start, datetime_end = datetime_maker(pnc.DAY)
+    flag_month, datetime_start, datetime_end = datetime_maker(day=pnc.DAY)
     soup = bs(req.get(url).text, 'lxml')
     value = soup.select('#ContentPlaceHolder_content_DropDownList_month > option')[0].get_text()
     if int(value) == int(flag_month)-1:
@@ -392,10 +400,10 @@ def find_kw(link, keyword, file_type='excel') -> tuple:
                 text = value
                 if keyword in value:
                     return True, text
-        return False, text
+    return False, text
 
 
-def datetime_maker(day) -> tuple:
+def datetime_maker(day=None) -> tuple:
     """
     產生發布日期的期間 ex: X月X日 - X月X日
     :param day: every month's release day
@@ -406,14 +414,24 @@ def datetime_maker(day) -> tuple:
     datetime_end: release date end
     """
     now = time.strftime('%m%d%H%M')
-    dateline = '{}{}1700'
-    month = str(date.today().month).rjust(2, '0')
-    flag_month = month if dateline.format(month, day[int(month)]) < now else str(int(month) - 1).rjust(2, '0')
-    next_flag_month = month if dateline.format(month, day[int(month)]) > now else str(int(month) + 1).rjust(2, '0')
-    datetime_start = dateline.format(flag_month, str(day[int(flag_month)]).rjust(2, '0'))
-    datetime_end = dateline.format(next_flag_month, str(day[int(next_flag_month)]).rjust(2, '0'))
-    sl.set_msg(datetime_start, datetime_end)
-    return flag_month, datetime_start, datetime_end
+    if day:
+        dateline = '{}{}1700'
+        month = str(date.today().month).rjust(2, '0')
+        # 判斷 now 是否大於當月日期, if True month=this month else month=previous month
+        # ex: 09251700 < 09121700 ? if True month=09 else month=08
+        flag_month = month if dateline.format(month, day[int(month)]) < now else str(int(month) - 1).rjust(2, '0')
+        next_flag_month = month if dateline.format(month, day[int(month)]) > now else str(int(month) + 1).rjust(2, '0')
+        datetime_start = dateline.format(flag_month, str(day[int(flag_month)]).rjust(2, '0'))
+        datetime_end = dateline.format(next_flag_month, str(day[int(next_flag_month)]).rjust(2, '0'))
+        sl.set_msg(datetime_start, datetime_end)
+        return flag_month, datetime_start, datetime_end
+    else:
+        dateline = '05151700'
+        flag_year = YEAR if '05151700' < now else YEAR-1
+        datetime_start = str(flag_year) + dateline
+        datetime_end = str(flag_year+1) + dateline
+        sl.set_msg(datetime_start, datetime_end)
+        return flag_year, datetime_start, datetime_end
 
 
 def get_web_driver() -> webdriver:
