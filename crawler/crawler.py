@@ -54,11 +54,11 @@ def start_crawler(key, url) -> None:
     # if url.find('OfficialInformation') != -1:
     #     extract_agrstat_official_info(key, url)
     #
-    if url.find('swcb') != -1:
-        extract_swcb(key, url)
+    # elif url.find('swcb') != -1:
+    #     extract_swcb(key, url)
     #
-    # elif url.find('0000575') != -1:
-    #     extract_forest(key, url)
+    if url.find('0000575') != -1:
+        extract_forest(key, url)
     #
     # elif url.find('InquireAdvance') != -1:
     #     extract_inquire_advance(key, url)
@@ -165,7 +165,7 @@ def extract_swcb(key, url) -> None:
                 if text < format_keyword:
                     mailhandler.set_msg(False, k, url, format_keyword)
                 else:
-                    mailhandler.set_msg(k, url, format_keyword, text)
+                    mailhandler.set_msg(True, k, url, format_keyword, text)
                 err_log.warning(format_keyword, k, text)
 
 
@@ -209,14 +209,24 @@ def extract_forest(key, url) -> None:
                 else:
                     err_log.warning(format_keyword, k, text)
 
-            if k == '林務局森林遊樂區收入':
-                keyword = '{}年{}月'
+            if k == '林務局森林遊樂區收入' or k == '木材市價':
                 flag_month, datetime_start, datetime_end = datetime_maker(day=fc.DAY)
-                format_keyword = keyword.format(YEAR, int(flag_month) - 1)
+                if k == '林務局森林遊樂區收入':
+                    format_keyword = fc.INCOME_KEYWORD.format(YEAR, int(flag_month)-1)
+                else:
+                    format_keyword = fc.WOOD_KEYWORD.format(YEAR, int(flag_month)-1)
                 find, text = find_kw(v, format_keyword, 'ods')
                 if find:
                     log.info(format_keyword, k, text)
                 else:
+                    if k == '林務局森林遊樂區收入':
+                        text = text.split(':')[1]
+                    else:
+                        text = text[1:text.index('份')]
+                    if text < format_keyword:
+                        mailhandler.set_msg(False, k, url, format_keyword)
+                    else:
+                        mailhandler.set_msg(True, k, url, format_keyword, text)
                     err_log.warning(format_keyword, key, text)
 
 
@@ -253,7 +263,7 @@ def extract_wood_price(key, url) -> None:
     :return: None
     """
     creator = wc()
-    flag_month, datetime_start, datetime_end = datetime_maker(day=creator.DAY)
+    flag_month, datetime_start, datetime_end = datetime_maker(day=wc.DAY)
 
     # 確認前一個月、當月、下個月是否有資料
     for i in range(1, -2, -1):
@@ -384,7 +394,7 @@ def find_kw(link, keyword, file_type='excel') -> tuple:
         for row in sheet:
             for cell in row:
                 cell_text = str(cell).strip().replace(' ', '')
-                if cell_text.find('時期') != -1:
+                if any(cell_text.find(i) != -1 for i in ['時期', '月份']):
                     text = cell_text
                     if keyword in text:
                         return True, text
@@ -417,6 +427,7 @@ def datetime_maker(day=None) -> tuple:
     if day:
         dateline = '{}{}1700'
         month = str(date.today().month).rjust(2, '0')
+
         # 判斷 now 是否大於當月日期, if True month=this month else month=previous month
         # ex: 09251700 < 09121700 ? if True month=09 else month=08
         flag_month = month if dateline.format(month, day[int(month)]) < now else str(int(month) - 1).rjust(2, '0')

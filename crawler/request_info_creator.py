@@ -68,6 +68,8 @@ class SwcbCreator(BaseCreator):
 class ForestCreator(BaseCreator):
     KEYWORDS_LENTH = 7
     KEYWORD = '中華民國{}年度'
+    INCOME_KEYWORD = '{}年{}月'
+    WOOD_KEYWORD = '{}年{}月'
     DAY = ['', 25, 26, 26, 25, 25, 25, 25, 27, 25, 25, 26, 25]
     SELECT_DICT = {
         'td_of_1': '#divContent > div.downloadBox > table > tbody > tr > td:nth-of-type(1)',
