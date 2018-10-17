@@ -66,8 +66,10 @@ class SwcbCreator(BaseCreator):
 
 
 class ForestCreator(BaseCreator):
-    KEYWORDS_LENTH = 6
+    KEYWORDS_LENTH = 7
     KEYWORD = '中華民國{}年度'
+    INCOME_KEYWORD = '{}年{}月'
+    WOOD_KEYWORD = '{}年{}月'
     DAY = ['', 25, 26, 26, 25, 25, 25, 25, 27, 25, 25, 26, 25]
     SELECT_DICT = {
         'td_of_1': '#divContent > div.downloadBox > table > tbody > tr > td:nth-of-type(1)',
@@ -78,6 +80,7 @@ class ForestCreator(BaseCreator):
 class InquireAdvanceCreator(BaseCreator):
     KEYWORD = '{}月'
     DAY = ['', 21, 20, 20, 22, 20, 20, 22, 20, 20, 22, 20, 20]
+    ELDER_DAY = ['', 22, 21, 20, 20, 21, 20, 20, 20, 20, 15, 15, 17]
     SELECT_DICT = {
         'tr': '#ctl00_cphMain_uctlInquireAdvance_tabResult > tr',
     }
@@ -192,3 +195,15 @@ class ApisAfaCreator(BaseCreator):
 
 class PirceNaifCreator(BaseCreator):
     DAY = ['', 15, 21, 15, 16, 15, 15, 16, 15, 17, 15, 15, 17]
+    SELECT_DICT = {
+        'option': '#ContentPlaceHolder_content_DropDownList_month > option'
+    }
+
+
+class BliCreator(BaseCreator):
+    KEYWORD = '{}年{}月'
+    ELDER_DAY = ['', 22, 21, 20, 20, 21, 20, 20, 20, 20, 15, 15, 17]
+    URL = 'https://www.bli.gov.tw/reportM.aspx?m=107{}&f=a7010'
+    SELECT_DICT = {
+        'a': 'body > p:nth-of-type(2) > a:nth-of-type(1)',
+    }

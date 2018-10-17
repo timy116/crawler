@@ -4,17 +4,20 @@ import requests
 import sys
 import time
 import pdfhandler
-import pyexcel_ods
-import xlrd
-from bs4 import BeautifulSoup as bs
 from const import Base
-from datetime import date
 from log import log, err_log
-from pprint import pprint
-from selenium import webdriver
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.wait import WebDriverWait
 from log import SimpleLog as sl
+from crawler_utils import (
+    AD_YEAR,
+    LAMBDA_DICT,
+    YEAR,
+    datetime_maker,
+    find_kw,
+    get_html_element,
+    get_web_driver,
+)
 from request_info_creator import (
     AgrstatOfficialInfoCreator as agroff,
     ForestCreator as fc,
@@ -24,23 +27,12 @@ from request_info_creator import (
     AgrstatBookCreator as abc,
     ApisAfaCreator as aac,
     PirceNaifCreator as pnc,
+    BliCreator as bc,
 )
-
-AD_YEAR = date.today().year
-# 西元轉民國年
-YEAR = AD_YEAR - 1911
-# switch-like
-LAMBDA_DICT = {
-    'kw_list': lambda l: [i.get_text().strip().replace(' ', '') for i in l],
-    'file_link_list': lambda url, l: [url.format(i.get('href')) for i in l],
-    'specfied_element_text': lambda l, x: l[x].get_text().strip().replace(' ', ''),
-    'specfied_file_link': lambda url, l, x: str(url + l[x].get('href').split('/')[1]),
-}
 
 kws_d = {}
 kws_l = []
 forest_kws_l = []
-req = requests.Session()
 
 
 def start_crawler(key, url) -> None:
@@ -51,29 +43,32 @@ def start_crawler(key, url) -> None:
     :return: None
     """
 
-    # if url.find('OfficialInformation') != -1:
-    #     extract_agrstat_official_info(key, url)
+    if url.find('OfficialInformation') != -1:
+        extract_agrstat_official_info(key, url)
 
-    # elif url.find('swcb') != -1:
-    #     extract_swcb(key, url)
+    elif url.find('swcb') != -1:
+        extract_swcb(key, url)
 
-    # elif url.find('0000575') != -1:
-    #     extract_forest(key, url)
-    #
-    # elif url.find('InquireAdvance') != -1:
-    #     extract_inquire_advance(key, url)
+    elif url.find('0000575') != -1:
+        extract_forest(key, url)
 
-    if url.find('woodprice') != -1:
+    elif url.find('InquireAdvance') != -1:
+        extract_inquire_advance(key, url)
+
+    elif url.find('woodprice') != -1:
         extract_wood_price(key, url)
 
-    # elif url.find('book') != -1:
-    #     extract_agrstat_book(key, url)
-    #
+    elif url.find('book') != -1:
+        extract_agrstat_book(key, url)
+
     elif url.find('apis.afa.gov.tw') != -1:
         extract_apis_afa(key, url)
-    #
+
     elif url.find('price.naif.org.tw') != -1:
         extract_price_naif(key, url)
+
+    elif url.find('www.bli.gov.tw') != -1:
+        extract_bli(key, url)
 
 
 def extract_agrstat_official_info(key, url) -> None:
@@ -104,7 +99,7 @@ def extract_agrstat_official_info(key, url) -> None:
                         del kws_d[k]
 
                 # 取得最後一個 td tag 的文字，用來判斷是否為最後一頁或者是更多頁面
-                flag = LAMBDA_DICT['specfied_element_text'](soup(agroff.SELECT_DICT['td']), -1)
+                flag = LAMBDA_DICT['specified_element_text'](soup(agroff.SELECT_DICT['td']), -1)
                 if flag == '...':
                     if creator.get_page_index().endswith('0'):
                         driver.find_element_by_xpath(
@@ -140,7 +135,6 @@ def extract_swcb(key, url) -> None:
     :param url: 網址，解析用
     :return: None
     """
-    # 創建關鍵字列表
     kws_l.append(key)
     if len(kws_l) == sc.KEYWORDS_LENTH:
         creator = sc()
@@ -157,10 +151,17 @@ def extract_swcb(key, url) -> None:
 
         # 迭代搜尋關鍵字
         for k, v in k_f_l_d.items():
-            if find_kw(v, creator.KEYWORD.format(str(YEAR - 1))):
-                log.info(k + '年度正確')
+            flag_year, datetime_start, datetime_end = datetime_maker()
+            format_keyword = sc.KEYWORD.format(flag_year-1)
+            find, text = find_kw(v, format_keyword)
+            if find:
+                log.info(format_keyword, k, text)
             else:
-                err_log.warning(k + ' 未在指定時間內上傳')
+                if text < format_keyword:
+                    mailhandler.set_msg(False, k, url, format_keyword)
+                else:
+                    mailhandler.set_msg(True, k, url, format_keyword, text)
+                err_log.warning(format_keyword, k, text)
 
 
 def extract_forest(key, url) -> None:
@@ -203,14 +204,24 @@ def extract_forest(key, url) -> None:
                 else:
                     err_log.warning(format_keyword, k, text)
 
-            if k == '林務局森林遊樂區收入':
-                keyword = '{}年{}月'
-                flag_month, datetime_start, datetime_end = datetime_maker(creator.DAY)
-                format_keyword = keyword.format(YEAR, int(flag_month) - 1)
+            if k == '林務局森林遊樂區收入' or k == '木材市價':
+                flag_month, datetime_start, datetime_end = datetime_maker(day=fc.DAY)
+                if k == '林務局森林遊樂區收入':
+                    format_keyword = fc.INCOME_KEYWORD.format(YEAR, int(flag_month)-1)
+                else:
+                    format_keyword = fc.WOOD_KEYWORD.format(YEAR, int(flag_month)-1)
                 find, text = find_kw(v, format_keyword, 'ods')
                 if find:
                     log.info(format_keyword, k, text)
                 else:
+                    if k == '林務局森林遊樂區收入':
+                        text = text.split(':')[1]
+                    else:
+                        text = text[1:text.index('份')]
+                    if text < format_keyword:
+                        mailhandler.set_msg(False, k, url, format_keyword)
+                    else:
+                        mailhandler.set_msg(True, k, url, format_keyword, text)
                     err_log.warning(format_keyword, key, text)
 
 
@@ -223,17 +234,19 @@ def extract_inquire_advance(key, url) -> None:
     :return: None
     """
     creator = ia(key)
-    flag_month, datetime_start, datetime_end = datetime_maker(creator.DAY)
 
     if key == '老年農民福利津貼核付人數' or key == '老年農民福利津貼核付金額':
-        keyword = creator.KEYWORD.format(int(flag_month)-2)
+        flag_month, datetime_start, datetime_end = datetime_maker(day=ia.ELDER_DAY)
+        keyword = ia.KEYWORD.format(int(flag_month)-2)
     else:
-        keyword = creator.KEYWORD.format(int(flag_month)-1)
+        flag_month, datetime_start, datetime_end = datetime_maker(day=ia.DAY)
+        keyword = ia.KEYWORD.format(int(flag_month)-1)
     element = get_html_element(ia.SELECT_DICT['tr'], url=url, creator=creator)
-    text = LAMBDA_DICT['specfied_element_text'](element, -2)
+    text = LAMBDA_DICT['specified_element_text'](element, -2)
     if text.find(keyword) != -1:
         log.info(keyword, key, text)
     else:
+        mailhandler.set_msg(False, key, url, keyword)
         err_log.warning(keyword, key, text)
 
 
@@ -245,7 +258,7 @@ def extract_wood_price(key, url) -> None:
     :return: None
     """
     creator = wc()
-    flag_month, datetime_start, datetime_end = datetime_maker(creator.DAY)
+    flag_month, datetime_start, datetime_end = datetime_maker(day=wc.DAY)
 
     # 確認前一個月、當月、下個月是否有資料
     for i in range(1, -2, -1):
@@ -253,7 +266,7 @@ def extract_wood_price(key, url) -> None:
         creator.set_months(int(flag_month) - i)
         format_keyword = wc.KEYWORD.format(YEAR, int(flag_month) - i)
         element = get_html_element(wc.SELECT_DICT['tr_of_2'], url=url, creator=creator)
-        text = LAMBDA_DICT['specfied_element_text'](element, 0)
+        text = LAMBDA_DICT['specified_element_text'](element, 0)
         if i == 1:
             if text.find(format_keyword) != -1:
                 log.info(format_keyword, key, text)
@@ -272,7 +285,7 @@ def extract_agrstat_book(key, url) -> None:
     now = time.strftime('%m%d%H%M')
     creator = abc(key)
     element, soup = get_html_element(abc.SELECT_DICT['a'], return_soup=True, url=url, creator=creator)
-    file_link = LAMBDA_DICT['specfied_file_link']('/'.join(url.split('/')[:-1]) + '/', element, 0)
+    file_link = LAMBDA_DICT['specified_file_link_slice']('/'.join(url.split('/')[:-1]) + '/', element, 0)
     if key == '糧食供需統計':
         specified_date = '10011700'
         if specified_date < now:
@@ -287,7 +300,7 @@ def extract_agrstat_book(key, url) -> None:
 
 
 def extract_apis_afa(key, url) -> None:
-    flag_month, datetime_start, datetime_end = datetime_maker(aac.DAY)
+    flag_month, datetime_start, datetime_end = datetime_maker(day=aac.DAY)
     format_keyword = aac.KEYWORD.format(AD_YEAR, int(flag_month) - 1)
     driver = get_web_driver()
     try:
@@ -321,9 +334,10 @@ def extract_apis_afa(key, url) -> None:
 
 
 def extract_price_naif(key, url):
-    flag_month, datetime_start, datetime_end = datetime_maker(pnc.DAY)
-    soup = bs(req.get(url).text, 'lxml')
-    value = soup.select('#ContentPlaceHolder_content_DropDownList_month > option')[0].get_text()
+    flag_month, datetime_start, datetime_end = datetime_maker(day=pnc.DAY)
+    creator = pnc()
+    element = get_html_element(pnc.SELECT_DICT['option'], method='get', url=url, creator=creator)
+    value = LAMBDA_DICT['specified_element_text'](element, 0)
     if int(value) == int(flag_month)-1:
         log.info(str(int(flag_month)-1)+'月', key, value)
     else:
@@ -331,102 +345,26 @@ def extract_price_naif(key, url):
         err_log.warning(str(int(flag_month)-1)+'月', key, value)
 
 
-def get_html_element(*args, method='post', page_source=None, return_soup=False, **kwargs):
-    """
-    get html element.
-    :param args: str, soup selector, 但可能不只取得一個元素
-    :param method: post or get
-    :param page_source: if use selenium, pass driver.page_source
-    :param return_soup: bool, if True, 代表要回傳 soup (reuse)
-    :param kwargs: url and creator
-    :return: list or tuple
-    """
-    element_list = []
-
-    if page_source is not None:
-        content = page_source
+def extract_bli(key, url):
+    flag_month, datetime_start, datetime_end = datetime_maker(day=bc.ELDER_DAY)
+    creator = bc()
+    format_keyword = bc.KEYWORD.format(YEAR, int(flag_month)-2)
+    format_url = bc.URL.format(str(int(flag_month)-2).rjust(2, '0'))
+    element = get_html_element(bc.SELECT_DICT['a'], method='get', url=format_url, creator=creator)
+    if not element:
+        mailhandler.set_msg(False, key, url, format_keyword)
+        err_log.warning(format_keyword, key, 'not found.')
     else:
-        creator = kwargs['creator']
-        if method != 'post':
-            content = req.get(kwargs['url'], headers=creator.headers).text
+        file_link = LAMBDA_DICT['specified_file_link']('/'.join(url.split('/')[0:3])+'/', element, 0)
+        find, text = find_kw(file_link, format_keyword, file_type='csv')
+        if find:
+            log.info(format_keyword, key, text)
         else:
-            content = req.post(kwargs['url'], headers=creator.headers, data=creator.form_data).content
-
-    soup = bs(content, 'lxml')
-    for i in args:
-        element_list.extend(soup.select(i))
-    if return_soup:
-        return element_list, lambda x: soup.select(x)
-    else:
-        return element_list
-
-
-def find_kw(link, keyword, file_type='excel') -> tuple:
-    """
-    開啟 excel 並確認年度是否正確
-    :param link: files url
-    :param keyword: keyword select
-    :param file_type:
-    :return: tuple
-    """
-    if file_type != 'excel':
-        calc = pyexcel_ods.get_data(io.BytesIO(req.get(link).content))
-        sheet = list(calc.values())[0]
-        text = ''
-        for row in sheet:
-            for cell in row:
-                cell_text = str(cell).strip().replace(' ', '')
-                if cell_text.find('時期') != -1:
-                    text = cell_text
-                    if keyword in text:
-                        return True, text
-        return False, text
-
-    wb = xlrd.open_workbook(file_contents=requests.get(link).content)
-    sheet = wb.sheet_by_index(0)
-    text = ''
-    for i in range(sheet.nrows):
-        for j in range(sheet.ncols):
-            value = str(sheet.row_values(i)[j]).strip().replace(' ', '')
-            if value.find('中華民國') != -1:
-                text = value
-                if keyword in value:
-                    return True, text
-        return False, text
-
-
-def datetime_maker(day) -> tuple:
-    """
-    產生發布日期的期間 ex: X月X日 - X月X日
-    :param day: every month's release day
-    :return: tuple
-    now: 當下時間
-    flag month: 是當月還是上個月份, 若為個位數月份前面須補 0
-    datetime_start: release date start
-    datetime_end: release date end
-    """
-    now = time.strftime('%m%d%H%M')
-    dateline = '{}{}1700'
-    month = str(date.today().month).rjust(2, '0')
-    flag_month = month if dateline.format(month, day[int(month)]) < now else str(int(month) - 1).rjust(2, '0')
-    next_flag_month = month if dateline.format(month, day[int(month)]) > now else str(int(month) + 1).rjust(2, '0')
-    datetime_start = dateline.format(flag_month, str(day[int(flag_month)]).rjust(2, '0'))
-    datetime_end = dateline.format(next_flag_month, str(day[int(next_flag_month)]).rjust(2, '0'))
-    sl.set_msg(datetime_start, datetime_end)
-    return flag_month, datetime_start, datetime_end
-
-
-def get_web_driver() -> webdriver:
-    """
-    設定 Chrome 參數並回傳
-    :return: webdriver object
-    """
-    option = webdriver.ChromeOptions()
-    option.add_argument('--disable-images')
-    option.add_argument('--disable-gpu')
-    option.add_argument('headless')
-    driver = webdriver.Chrome(chrome_options=option)
-    return driver
+            if text[4:] < format_keyword:
+                mailhandler.set_msg(False, key, url, format_keyword)
+            else:
+                mailhandler.set_msg(True, key, url, format_keyword, text)
+            err_log.warning(format_keyword, key, text)
 
 
 if __name__ == '__main__':
