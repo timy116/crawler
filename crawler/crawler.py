@@ -1,3 +1,4 @@
+import csv
 import io
 import mailhandler
 import requests
@@ -24,6 +25,7 @@ from request_info_creator import (
     AgrstatBookCreator as abc,
     ApisAfaCreator as aac,
     PirceNaifCreator as pnc,
+    BliCreator as bc,
 )
 
 AD_YEAR = date.today().year
@@ -33,8 +35,9 @@ YEAR = AD_YEAR - 1911
 LAMBDA_DICT = {
     'kw_list': lambda l: [i.get_text().strip().replace(' ', '') for i in l],
     'file_link_list': lambda url, l: [url.format(i.get('href')) for i in l],
-    'specfied_element_text': lambda l, x: l[x].get_text().strip().replace(' ', ''),
-    'specfied_file_link': lambda url, l, x: str(url + l[x].get('href').split('/')[1]),
+    'specified_element_text': lambda l, x: l[x].get_text().strip().replace(' ', ''),
+    'specified_file_link_slice': lambda url, l, x: str(url + l[x].get('href').split('/')[1]),
+    'specified_file_link': lambda url, l, x: str(url + l[x].get('href')),
 }
 
 kws_d = {}
@@ -51,29 +54,32 @@ def start_crawler(key, url) -> None:
     :return: None
     """
 
-    # if url.find('OfficialInformation') != -1:
-    #     extract_agrstat_official_info(key, url)
-    #
-    # elif url.find('swcb') != -1:
-    #     extract_swcb(key, url)
-    #
-    if url.find('0000575') != -1:
+    if url.find('OfficialInformation') != -1:
+        extract_agrstat_official_info(key, url)
+
+    elif url.find('swcb') != -1:
+        extract_swcb(key, url)
+
+    elif url.find('0000575') != -1:
         extract_forest(key, url)
-    #
-    # elif url.find('InquireAdvance') != -1:
-    #     extract_inquire_advance(key, url)
-    #
-    # elif url.find('woodprice') != -1:
-    #     extract_wood_price(key, url)
-    #
-    # elif url.find('book') != -1:
-    #     extract_agrstat_book(key, url)
-    # #
-    # elif url.find('apis.afa.gov.tw') != -1:
-    #     extract_apis_afa(key, url)
-    # #
-    # elif url.find('price.naif.org.tw') != -1:
-    #     extract_price_naif(key, url)
+
+    elif url.find('InquireAdvance') != -1:
+        extract_inquire_advance(key, url)
+
+    elif url.find('woodprice') != -1:
+        extract_wood_price(key, url)
+
+    elif url.find('book') != -1:
+        extract_agrstat_book(key, url)
+
+    elif url.find('apis.afa.gov.tw') != -1:
+        extract_apis_afa(key, url)
+
+    elif url.find('price.naif.org.tw') != -1:
+        extract_price_naif(key, url)
+
+    elif url.find('www.bli.gov.tw') != -1:
+        extract_bli(key, url)
 
 
 def extract_agrstat_official_info(key, url) -> None:
@@ -104,7 +110,7 @@ def extract_agrstat_official_info(key, url) -> None:
                         del kws_d[k]
 
                 # 取得最後一個 td tag 的文字，用來判斷是否為最後一頁或者是更多頁面
-                flag = LAMBDA_DICT['specfied_element_text'](soup(agroff.SELECT_DICT['td']), -1)
+                flag = LAMBDA_DICT['specified_element_text'](soup(agroff.SELECT_DICT['td']), -1)
                 if flag == '...':
                     if creator.get_page_index().endswith('0'):
                         driver.find_element_by_xpath(
@@ -247,7 +253,7 @@ def extract_inquire_advance(key, url) -> None:
         flag_month, datetime_start, datetime_end = datetime_maker(day=ia.DAY)
         keyword = ia.KEYWORD.format(int(flag_month)-1)
     element = get_html_element(ia.SELECT_DICT['tr'], url=url, creator=creator)
-    text = LAMBDA_DICT['specfied_element_text'](element, -2)
+    text = LAMBDA_DICT['specified_element_text'](element, -2)
     if text.find(keyword) != -1:
         log.info(keyword, key, text)
     else:
@@ -271,7 +277,7 @@ def extract_wood_price(key, url) -> None:
         creator.set_months(int(flag_month) - i)
         format_keyword = wc.KEYWORD.format(YEAR, int(flag_month) - i)
         element = get_html_element(wc.SELECT_DICT['tr_of_2'], url=url, creator=creator)
-        text = LAMBDA_DICT['specfied_element_text'](element, 0)
+        text = LAMBDA_DICT['specified_element_text'](element, 0)
         if i == 1:
             if text.find(format_keyword) != -1:
                 log.info(format_keyword, key, text)
@@ -290,7 +296,7 @@ def extract_agrstat_book(key, url) -> None:
     now = time.strftime('%m%d%H%M')
     creator = abc(key)
     element, soup = get_html_element(abc.SELECT_DICT['a'], return_soup=True, url=url, creator=creator)
-    file_link = LAMBDA_DICT['specfied_file_link']('/'.join(url.split('/')[:-1]) + '/', element, 0)
+    file_link = LAMBDA_DICT['specified_file_link_slice']('/'.join(url.split('/')[:-1]) + '/', element, 0)
     if key == '糧食供需統計':
         specified_date = '10011700'
         if specified_date < now:
@@ -340,13 +346,36 @@ def extract_apis_afa(key, url) -> None:
 
 def extract_price_naif(key, url):
     flag_month, datetime_start, datetime_end = datetime_maker(day=pnc.DAY)
-    soup = bs(req.get(url).text, 'lxml')
-    value = soup.select('#ContentPlaceHolder_content_DropDownList_month > option')[0].get_text()
+    creator = pnc()
+    element = get_html_element(pnc.SELECT_DICT['option'], method='get', url=url, creator=creator)
+    value = LAMBDA_DICT['specified_element_text'](element, 0)
     if int(value) == int(flag_month)-1:
         log.info(str(int(flag_month)-1)+'月', key, value)
     else:
         mailhandler.set_msg(False, key, url, str(int(flag_month)-1)+'月')
         err_log.warning(str(int(flag_month)-1)+'月', key, value)
+
+
+def extract_bli(key, url):
+    flag_month, datetime_start, datetime_end = datetime_maker(day=bc.ELDER_DAY)
+    creator = bc()
+    format_keyword = bc.KEYWORD.format(YEAR, int(flag_month)-2)
+    format_url = bc.URL.format(str(int(flag_month)-2).rjust(2, '0'))
+    element = get_html_element(bc.SELECT_DICT['a'], method='get', url=format_url, creator=creator)
+    if not element:
+        mailhandler.set_msg(False, key, url, format_keyword)
+        err_log.warning(format_keyword, key, 'not found.')
+    else:
+        file_link = LAMBDA_DICT['specified_file_link']('/'.join(url.split('/')[0:3])+'/', element, 0)
+        find, text = find_kw(file_link, format_keyword, file_type='csv')
+        if find:
+            log.info(format_keyword, key, text)
+        else:
+            if text[4:] < format_keyword:
+                mailhandler.set_msg(False, key, url, format_keyword)
+            else:
+                mailhandler.set_msg(True, key, url, format_keyword, text)
+            err_log.warning(format_keyword, key, text)
 
 
 def get_html_element(*args, method='post', page_source=None, return_soup=False, **kwargs):
@@ -387,10 +416,10 @@ def find_kw(link, keyword, file_type='excel') -> tuple:
     :param file_type:
     :return: tuple
     """
-    if file_type != 'excel':
+    text = ''
+    if file_type == 'ods':
         calc = pyexcel_ods.get_data(io.BytesIO(req.get(link).content))
         sheet = list(calc.values())[0]
-        text = ''
         for row in sheet:
             for cell in row:
                 cell_text = str(cell).strip().replace(' ', '')
@@ -399,10 +428,20 @@ def find_kw(link, keyword, file_type='excel') -> tuple:
                     if keyword in text:
                         return True, text
         return False, text
+    elif file_type == 'csv':
+        rows = csv.reader(io.BytesIO(req.get(link).content).read().decode('big5'))
+        for i in rows:
+            for j in i:
+                s = str(j).strip().replace('\u3000', '').replace(' ', '')
+                if any(s.find(i) != -1 for i in ['中華民國']):
+                    text = s
+                    if keyword in text:
+                        return True, text
+                    else:
+                        return False, text
 
     wb = xlrd.open_workbook(file_contents=requests.get(link).content)
     sheet = wb.sheet_by_index(0)
-    text = ''
     for i in range(sheet.nrows):
         for j in range(sheet.ncols):
             value = str(sheet.row_values(i)[j]).strip().replace(' ', '')

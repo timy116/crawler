@@ -195,3 +195,15 @@ class ApisAfaCreator(BaseCreator):
 
 class PirceNaifCreator(BaseCreator):
     DAY = ['', 15, 21, 15, 16, 15, 15, 16, 15, 17, 15, 15, 17]
+    SELECT_DICT = {
+        'option': '#ContentPlaceHolder_content_DropDownList_month > option'
+    }
+
+
+class BliCreator(BaseCreator):
+    KEYWORD = '{}年{}月'
+    ELDER_DAY = ['', 22, 21, 20, 20, 21, 20, 20, 20, 20, 15, 15, 17]
+    URL = 'https://www.bli.gov.tw/reportM.aspx?m=107{}&f=a7010'
+    SELECT_DICT = {
+        'a': 'body > p:nth-of-type(2) > a:nth-of-type(1)',
+    }
