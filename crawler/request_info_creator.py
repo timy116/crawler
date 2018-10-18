@@ -59,6 +59,7 @@ class AgrstatOfficialInfoCreator(BaseCreator):
 class SwcbCreator(BaseCreator):
     KEYWORDS_LENTH = 3
     KEYWORD = '中華民國{}年度'
+    SPECIFIED_DAY = '05151700'
     SELECT_DICT = {
         'h3': 'div.lastList > ul > li > a > h3',
         'a': 'div.lastList > ul > li > a',
@@ -171,6 +172,8 @@ class AgrstatBookCreator(BaseCreator):
             'Cookie': '_ga=GA1.3.758348857.1534843864; ASP.NET_SessionId=3bv2ewyqvboe2y45g52hri55',
             'Referer': 'http://agrstat.coa.gov.tw/sdweb/public/book/Book.aspx',
         }
+        if kw == '糧食供需統計':
+            self.spec_day = '10011700'
         super().__init__(headers)
         self.form_data = {
             '__EVENTTARGET': 'ctl00$cphMain$uctlBook$grdBook$ctl03$btnBookName',

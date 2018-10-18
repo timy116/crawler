@@ -98,10 +98,11 @@ def find_kw(link, keyword, file_type='excel') -> tuple:
     return False, text
 
 
-def datetime_maker(day=None) -> tuple:
+def datetime_maker(day=None, spec=None) -> tuple:
     """
     產生發布日期的期間 ex: X月X日 - X月X日
     :param day: every month's release day
+    :param spec: specified day
     :return: tuple
     now: 當下時間
     flag month: 是當月還是上個月份, 若為個位數月份前面須補 0
@@ -122,8 +123,8 @@ def datetime_maker(day=None) -> tuple:
         sl.set_msg(datetime_start, datetime_end)
         return flag_month, datetime_start, datetime_end
     else:
-        dateline = '05151700'
-        flag_year = YEAR if '05151700' < now else YEAR-1
+        dateline = spec
+        flag_year = YEAR if dateline < now else YEAR-1
         datetime_start = str(flag_year) + dateline
         datetime_end = str(flag_year+1) + dateline
         sl.set_msg(datetime_start, datetime_end)

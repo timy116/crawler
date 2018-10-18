@@ -43,32 +43,32 @@ def start_crawler(key, url) -> None:
     :return: None
     """
 
-    if url.find('OfficialInformation') != -1:
-        extract_agrstat_official_info(key, url)
-
-    elif url.find('swcb') != -1:
-        extract_swcb(key, url)
-
-    elif url.find('0000575') != -1:
-        extract_forest(key, url)
-
-    elif url.find('InquireAdvance') != -1:
-        extract_inquire_advance(key, url)
-
-    elif url.find('woodprice') != -1:
-        extract_wood_price(key, url)
-
-    elif url.find('book') != -1:
+    # if url.find('OfficialInformation') != -1:
+    #     extract_agrstat_official_info(key, url)
+    #
+    # elif url.find('swcb') != -1:
+    #     extract_swcb(key, url)
+    #
+    # elif url.find('0000575') != -1:
+    #     extract_forest(key, url)
+    #
+    # elif url.find('InquireAdvance') != -1:
+    #     extract_inquire_advance(key, url)
+    #
+    # elif url.find('woodprice') != -1:
+    #     extract_wood_price(key, url)
+    #
+    if url.find('book') != -1:
         extract_agrstat_book(key, url)
-
-    elif url.find('apis.afa.gov.tw') != -1:
-        extract_apis_afa(key, url)
-
-    elif url.find('price.naif.org.tw') != -1:
-        extract_price_naif(key, url)
-
-    elif url.find('www.bli.gov.tw') != -1:
-        extract_bli(key, url)
+    #
+    # elif url.find('apis.afa.gov.tw') != -1:
+    #     extract_apis_afa(key, url)
+    #
+    # elif url.find('price.naif.org.tw') != -1:
+    #     extract_price_naif(key, url)
+    #
+    # elif url.find('www.bli.gov.tw') != -1:
+    #     extract_bli(key, url)
 
 
 def extract_agrstat_official_info(key, url) -> None:
@@ -151,7 +151,7 @@ def extract_swcb(key, url) -> None:
 
         # 迭代搜尋關鍵字
         for k, v in k_f_l_d.items():
-            flag_year, datetime_start, datetime_end = datetime_maker()
+            flag_year, datetime_start, datetime_end = datetime_maker(spec=sc.SPECIFIED_DAY)
             format_keyword = sc.KEYWORD.format(flag_year-1)
             find, text = find_kw(v, format_keyword)
             if find:
@@ -282,21 +282,21 @@ def extract_wood_price(key, url) -> None:
 
 
 def extract_agrstat_book(key, url) -> None:
-    now = time.strftime('%m%d%H%M')
     creator = abc(key)
     element, soup = get_html_element(abc.SELECT_DICT['a'], return_soup=True, url=url, creator=creator)
     file_link = LAMBDA_DICT['specified_file_link_slice']('/'.join(url.split('/')[:-1]) + '/', element, 0)
     if key == '糧食供需統計':
-        specified_date = '10011700'
-        if specified_date < now:
-            format_keyword = creator.KEYWORD.format(YEAR - 1)
-        else:
-            format_keyword = creator.KEYWORD.format(YEAR - 2)
+        flag_year, datetime_start, datetime_end = datetime_maker(spec=creator.spec_day)
+        format_keyword = abc.KEYWORD.format(flag_year-1)
         find, text = pdfhandler.extract_text(io.BytesIO(requests.get(file_link).content), format_keyword)
         if find:
-            log.info(specified_date + '--' + format_keyword + ' | ' + key + ' : ' + text, unpacking=False)
+            log.info(format_keyword, key, text[1:])
         else:
-            err_log.warning(specified_date + '--' + format_keyword + ' | ' + key + ' : ' + text, unpacking=False)
+            if int(text[1:text.index('年')]) < flag_year-1:
+                mailhandler.set_msg(False, url, key, str(flag_year-1)+'年')
+            else:
+                mailhandler.set_msg(True, url, key, str(flag_year - 1)+'年', text[1:text.index('年')+1])
+            err_log.warning(format_keyword, key, text[1:])
 
 
 def extract_apis_afa(key, url) -> None:
