@@ -59,6 +59,7 @@ class AgrstatOfficialInfoCreator(BaseCreator):
 class SwcbCreator(BaseCreator):
     KEYWORDS_LENTH = 3
     KEYWORD = '中華民國{}年度'
+    SPECIFIED_DAY = '05151700'
     SELECT_DICT = {
         'h3': 'div.lastList > ul > li > a > h3',
         'a': 'div.lastList > ul > li > a',
@@ -161,24 +162,70 @@ class WoodPriceCreator(BaseCreator):
 
 
 class AgrstatBookCreator(BaseCreator):
-    KEYWORD = '{}年糧食供需年報'
+    KEYWORD = '{}年'
+    NUMBER_OF_PIG_KEYWORD = '{}年{}月底'
     SELECT_DICT = {
         'a': '#ctl00_cphMain_uctlBook_repChapter_ctl07_dtlFile_ctl01_lnkFile',
+        'a2': '#ctl00_cphMain_uctlBook_repChapter_ctl09_dtlFile_ctl01_lnkFile',
+        'a3': '#ctl00_cphMain_uctlBook_repChapter_ctl56_dtlFile_ctl01_lnkFile',
+        'a4': '#ctl00_cphMain_uctlBook_repChapter_ctl00_lnkChapter',
+        'a5': '#ctl00_cphMain_uctlBook_repChapter_ctl02_dtlFile_ctl02_lnkFile',
     }
 
     def __init__(self, kw):
+        if kw == '糧食供需統計':
+            self.spec_day = '10011700'
+            self.a_tag = AgrstatBookCreator.SELECT_DICT['a']
+            self.form_data = {
+                '__EVENTTARGET': 'ctl00$cphMain$uctlBook$grdBook$ctl03$btnBookName',
+                '__EVENTARGUMENT': '',
+                '__VIEWSTATE': LongText.PROVISION_VIEWSTATE,
+                '__VIEWSTATEGENERATOR': 'AC7AE538',
+                '__EVENTVALIDATION': LongText.PROVISION_EVENTVALIDATION
+            }
+        elif kw == '畜產品生產成本':
+            self.spec_day = '07171700'
+            self.a_tag = AgrstatBookCreator.SELECT_DICT['a4']
+            self.form_data = {
+                '__EVENTTARGET': 'ctl00$cphMain$uctlBook$grdBook$ctl06$btnBookName',
+                '__EVENTARGUMENT': '',
+                '__VIEWSTATE': LongText.LIVESTOCK_PRODUCT_COST_VIEWSTATE,
+                '__VIEWSTATEGENERATOR': 'AC7AE538',
+                '__EVENTVALIDATION': LongText.LIVESTOCK_PRODUCT_COST_EVENTVALIDATION
+            }
+        elif kw == '毛豬飼養頭數':
+            self.a_tag = AgrstatBookCreator.SELECT_DICT['a5']
+            self.form_data = {
+                '__EVENTTARGET': 'ctl00$cphMain$uctlBook$grdBook$ctl08$btnBookName',
+                '__EVENTARGUMENT': '',
+                '__VIEWSTATE': LongText.NUMBER_OF_PIG_VIEWSTATE,
+                '__VIEWSTATEGENERATOR': 'AC7AE538',
+                '__EVENTVALIDATION': LongText.NUMBER_OF_PIG_EVENTVALIDATION
+            }
+        elif kw == '農作物種植面積、產量' or kw == '畜牧用地面積':
+            if kw == '農作物種植面積、產量':
+                self.spec_day = '05311700'
+                self.a_tag = AgrstatBookCreator.SELECT_DICT['a2']
+            else:
+                self.spec_day = '04301700'
+                self.a_tag = AgrstatBookCreator.SELECT_DICT['a3']
+
+            self.form_data = {
+                '__EVENTTARGET': 'ctl00$cphMain$uctlBook$grdBook$ctl09$btnBookName',
+                '__EVENTARGUMENT': '',
+                '__VIEWSTATE': LongText.CROP_AREA_YIELD_VIEWSTATE,
+                '__VIEWSTATEGENERATOR': 'AC7AE538',
+                '__EVENTVALIDATION': LongText.CROP_AREA_YIELD_EVENTVALIDATION
+            }
+
         headers = {
             'Cookie': '_ga=GA1.3.758348857.1534843864; ASP.NET_SessionId=3bv2ewyqvboe2y45g52hri55',
             'Referer': 'http://agrstat.coa.gov.tw/sdweb/public/book/Book.aspx',
         }
         super().__init__(headers)
-        self.form_data = {
-            '__EVENTTARGET': 'ctl00$cphMain$uctlBook$grdBook$ctl03$btnBookName',
-            '__EVENTARGUMENT': '',
-            '__VIEWSTATE': LongText.PROVISION_VIEWSTATE,
-            '__VIEWSTATEGENERATOR': 'AC7AE538',
-            '__EVENTVALIDATION': LongText.PROVISION_EVENTVALIDATION
-        }
+
+    def get_selector(self):
+        return self.a_tag
 
 
 class ApisAfaCreator(BaseCreator):
