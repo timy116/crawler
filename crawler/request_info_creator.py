@@ -166,11 +166,14 @@ class AgrstatBookCreator(BaseCreator):
     SELECT_DICT = {
         'a': '#ctl00_cphMain_uctlBook_repChapter_ctl07_dtlFile_ctl01_lnkFile',
         'a2': '#ctl00_cphMain_uctlBook_repChapter_ctl09_dtlFile_ctl01_lnkFile',
+        'a3': '#ctl00_cphMain_uctlBook_repChapter_ctl56_dtlFile_ctl01_lnkFile',
+        'a4': '#ctl00_cphMain_uctlBook_repChapter_ctl00_lnkChapter',
     }
 
     def __init__(self, kw):
         if kw == '糧食供需統計':
             self.spec_day = '10011700'
+            self.a_tag = AgrstatBookCreator.SELECT_DICT['a']
             self.form_data = {
                 '__EVENTTARGET': 'ctl00$cphMain$uctlBook$grdBook$ctl03$btnBookName',
                 '__EVENTARGUMENT': '',
@@ -178,8 +181,24 @@ class AgrstatBookCreator(BaseCreator):
                 '__VIEWSTATEGENERATOR': 'AC7AE538',
                 '__EVENTVALIDATION': LongText.PROVISION_EVENTVALIDATION
             }
-        if kw == '農作物種植面積、產量':
-            self.spec_day = '05311700'
+        elif kw == '畜產品生產成本':
+            self.spec_day = '07171700'
+            self.a_tag = AgrstatBookCreator.SELECT_DICT['a4']
+            self.form_data = {
+                '__EVENTTARGET': 'ctl00$cphMain$uctlBook$grdBook$ctl06$btnBookName',
+                '__EVENTARGUMENT': '',
+                '__VIEWSTATE': LongText.LIVESTOCK_PRODUCT_COST_VIEWSTATE,
+                '__VIEWSTATEGENERATOR': 'AC7AE538',
+                '__EVENTVALIDATION': LongText.LIVESTOCK_PRODUCT_COST_EVENTVALIDATION
+            }
+        elif kw == '農作物種植面積、產量' or kw == '畜牧用地面積':
+            if kw == '農作物種植面積、產量':
+                self.spec_day = '05311700'
+                self.a_tag = AgrstatBookCreator.SELECT_DICT['a2']
+            else:
+                self.spec_day = '04301700'
+                self.a_tag = AgrstatBookCreator.SELECT_DICT['a3']
+
             self.form_data = {
                 '__EVENTTARGET': 'ctl00$cphMain$uctlBook$grdBook$ctl09$btnBookName',
                 '__EVENTARGUMENT': '',
@@ -193,6 +212,9 @@ class AgrstatBookCreator(BaseCreator):
             'Referer': 'http://agrstat.coa.gov.tw/sdweb/public/book/Book.aspx',
         }
         super().__init__(headers)
+
+    def get_selector(self):
+        return self.a_tag
 
 
 class ApisAfaCreator(BaseCreator):

@@ -282,15 +282,10 @@ def extract_wood_price(key, url) -> None:
 
 
 def extract_agrstat_book(key, url) -> None:
-    if key in ['糧食供需統計', '農作物種植面積、產量']:
+    if key in ['糧食供需統計', '農作物種植面積、產量', '畜牧用地面積', '畜產品生產成本']:
         creator = abc(key)
-        if key == '糧食供需統計':
-            element, soup = get_html_element(abc.SELECT_DICT['a'], return_soup=True, url=url, creator=creator)
-            file_link = LAMBDA_DICT['specified_file_link_slice']('/'.join(url.split('/')[:-1]) + '/', element, 0)
-        elif key == '農作物種植面積、產量':
-            element, soup = get_html_element(abc.SELECT_DICT['a2'], return_soup=True, url=url, creator=creator)
-            file_link = LAMBDA_DICT['specified_file_link_slice']('/'.join(url.split('/')[:-1]) + '/', element, 0)
-
+        element = get_html_element(creator.get_selector(), return_soup=False, url=url, creator=creator)
+        file_link = LAMBDA_DICT['specified_file_link_slice']('/'.join(url.split('/')[:-1]) + '/', element, 0)
         flag_year, datetime_start, datetime_end = datetime_maker(spec=creator.spec_day)
         format_keyword = abc.KEYWORD.format(flag_year-1)
         find, text = find_kw(file_link, format_keyword, file_type='pdf')
