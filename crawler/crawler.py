@@ -282,21 +282,40 @@ def extract_wood_price(key, url) -> None:
 
 
 def extract_agrstat_book(key, url) -> None:
-    if key in ['糧食供需統計', '農作物種植面積、產量', '畜牧用地面積', '畜產品生產成本']:
+    if key in ['糧食供需統計', '農作物種植面積、產量', '畜牧用地面積', '畜產品生產成本', '毛豬飼養頭數']:
         creator = abc(key)
         element = get_html_element(creator.get_selector(), return_soup=False, url=url, creator=creator)
         file_link = LAMBDA_DICT['specified_file_link_slice']('/'.join(url.split('/')[:-1]) + '/', element, 0)
-        flag_year, datetime_start, datetime_end = datetime_maker(spec=creator.spec_day)
-        format_keyword = abc.KEYWORD.format(flag_year-1)
-        find, text = find_kw(file_link, format_keyword, file_type='pdf')
-        if find:
-            log.info(format_keyword, key, text)
-        else:
-            if int(text[:text.index('年')]) < flag_year-1:
-                mailhandler.set_msg(False, url, key, str(flag_year-1)+'年')
+        if key == '毛豬飼養頭數':
+            now = time.strftime('%m%d%H%M')
+            jan = str(YEAR)+'01151700'
+            jul = str(YEAR)+'07161700'
+            datetime_start = jul if jul < str(YEAR)+now else jan
+            datetime_end = str(YEAR+1)+'01151700' if jul < str(YEAR)+now else jul
+            sl.set_msg(datetime_start, datetime_end)
+            format_keyword = abc.NUMBER_OF_PIG_KEYWORD.format(YEAR, 5) if datetime_start == jul else \
+                abc.NUMBER_OF_PIG_KEYWORD.format(YEAR-1, 11)
+            find, text = find_kw(file_link, format_keyword, file_type='pdf')
+            if find:
+                log.info(format_keyword, key, text)
             else:
-                mailhandler.set_msg(True, url, key, str(flag_year - 1)+'年', text[:text.index('年')+1])
-            err_log.warning(format_keyword, key, text)
+                if text < format_keyword:
+                    mailhandler.set_msg(False, url, key, format_keyword)
+                else:
+                    mailhandler.set_msg(True, url, key, format_keyword, text)
+                err_log.warning(format_keyword, key, text)
+        else:
+            flag_year, datetime_start, datetime_end = datetime_maker(spec=creator.spec_day)
+            format_keyword = abc.KEYWORD.format(flag_year-1)
+            find, text = find_kw(file_link, format_keyword, file_type='pdf')
+            if find:
+                log.info(format_keyword, key, text)
+            else:
+                if int(text[:text.index('年')]) < flag_year-1:
+                    mailhandler.set_msg(False, url, key, str(flag_year-1)+'年')
+                else:
+                    mailhandler.set_msg(True, url, key, str(flag_year - 1)+'年', text[:text.index('年')+1])
+                err_log.warning(format_keyword, key, text)
 
 
 def extract_apis_afa(key, url) -> None:

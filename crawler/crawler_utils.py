@@ -106,7 +106,9 @@ def find_kw(link, keyword, file_type='excel') -> tuple:
         device = PDFPageAggregator(rsrcmgr, laparams=laparams)
         interpreter = PDFPageInterpreter(rsrcmgr, device)
         text = ''
-        for page in list(doc.get_pages()):
+        for index, page in enumerate(list(doc.get_pages())):
+            if keyword.find('月底') != -1 and index == 1:
+                break
             interpreter.process_page(page)
             layout = device.get_result()
             for o in layout:
