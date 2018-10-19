@@ -1,6 +1,8 @@
 from bs4 import BeautifulSoup as bs
 from datetime import date
 from log import SimpleLog as sl
+from pdfminer.converter import PDFPageAggregator
+from pdfminer.layout import LTTextBoxHorizontal, LAParams
 from selenium import webdriver
 import csv
 import io
@@ -8,6 +10,12 @@ import pyexcel_ods
 import requests
 import time
 import xlrd
+from pdfminer.pdfinterp import (
+    PDFPageInterpreter,
+    PDFResourceManager,
+    PDFDocument,
+    PDFParser
+)
 
 AD_YEAR = date.today().year
 # 西元轉民國年
@@ -74,6 +82,7 @@ def find_kw(link, keyword, file_type='excel') -> tuple:
                     if keyword in text:
                         return True, text
         return False, text
+
     elif file_type == 'csv':
         rows = csv.reader(io.BytesIO(req.get(link).content).read().decode('big5'))
         for i in rows:
@@ -85,6 +94,29 @@ def find_kw(link, keyword, file_type='excel') -> tuple:
                         return True, text
                     else:
                         return False, text
+
+    elif file_type == 'pdf':
+        parser = PDFParser(io.BytesIO(req.get(link).content))
+        doc = PDFDocument()
+        parser.set_document(doc)
+        doc.set_parser(parser)
+        doc.initialize()
+        rsrcmgr = PDFResourceManager()
+        laparams = LAParams()
+        device = PDFPageAggregator(rsrcmgr, laparams=laparams)
+        interpreter = PDFPageInterpreter(rsrcmgr, device)
+        text = ''
+        for page in list(doc.get_pages()):
+            interpreter.process_page(page)
+            layout = device.get_result()
+            for o in layout:
+                if isinstance(o, LTTextBoxHorizontal):
+                    pdf_text = o.get_text().strip()
+                    if any(pdf_text.find(i) != -1 for i in ['時期', '年']):
+                        text = pdf_text.split(' ')[-1]
+                    if text.find(keyword) != -1:
+                        return True, text
+        return False, text
 
     wb = xlrd.open_workbook(file_contents=requests.get(link).content)
     sheet = wb.sheet_by_index(0)

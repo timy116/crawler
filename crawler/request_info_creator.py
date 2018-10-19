@@ -162,26 +162,37 @@ class WoodPriceCreator(BaseCreator):
 
 
 class AgrstatBookCreator(BaseCreator):
-    KEYWORD = '{}年糧食供需年報'
+    KEYWORD = '{}年'
     SELECT_DICT = {
         'a': '#ctl00_cphMain_uctlBook_repChapter_ctl07_dtlFile_ctl01_lnkFile',
+        'a2': '#ctl00_cphMain_uctlBook_repChapter_ctl09_dtlFile_ctl01_lnkFile',
     }
 
     def __init__(self, kw):
+        if kw == '糧食供需統計':
+            self.spec_day = '10011700'
+            self.form_data = {
+                '__EVENTTARGET': 'ctl00$cphMain$uctlBook$grdBook$ctl03$btnBookName',
+                '__EVENTARGUMENT': '',
+                '__VIEWSTATE': LongText.PROVISION_VIEWSTATE,
+                '__VIEWSTATEGENERATOR': 'AC7AE538',
+                '__EVENTVALIDATION': LongText.PROVISION_EVENTVALIDATION
+            }
+        if kw == '農作物種植面積、產量':
+            self.spec_day = '05311700'
+            self.form_data = {
+                '__EVENTTARGET': 'ctl00$cphMain$uctlBook$grdBook$ctl09$btnBookName',
+                '__EVENTARGUMENT': '',
+                '__VIEWSTATE': LongText.CROP_AREA_YIELD_VIEWSTATE,
+                '__VIEWSTATEGENERATOR': 'AC7AE538',
+                '__EVENTVALIDATION': LongText.CROP_AREA_YIELD_EVENTVALIDATION
+            }
+
         headers = {
             'Cookie': '_ga=GA1.3.758348857.1534843864; ASP.NET_SessionId=3bv2ewyqvboe2y45g52hri55',
             'Referer': 'http://agrstat.coa.gov.tw/sdweb/public/book/Book.aspx',
         }
-        if kw == '糧食供需統計':
-            self.spec_day = '10011700'
         super().__init__(headers)
-        self.form_data = {
-            '__EVENTTARGET': 'ctl00$cphMain$uctlBook$grdBook$ctl03$btnBookName',
-            '__EVENTARGUMENT': '',
-            '__VIEWSTATE': LongText.PROVISION_VIEWSTATE,
-            '__VIEWSTATEGENERATOR': 'AC7AE538',
-            '__EVENTVALIDATION': LongText.PROVISION_EVENTVALIDATION
-        }
 
 
 class ApisAfaCreator(BaseCreator):

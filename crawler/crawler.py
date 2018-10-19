@@ -282,21 +282,26 @@ def extract_wood_price(key, url) -> None:
 
 
 def extract_agrstat_book(key, url) -> None:
-    creator = abc(key)
-    element, soup = get_html_element(abc.SELECT_DICT['a'], return_soup=True, url=url, creator=creator)
-    file_link = LAMBDA_DICT['specified_file_link_slice']('/'.join(url.split('/')[:-1]) + '/', element, 0)
-    if key == '糧食供需統計':
+    if key in ['糧食供需統計', '農作物種植面積、產量']:
+        creator = abc(key)
+        if key == '糧食供需統計':
+            element, soup = get_html_element(abc.SELECT_DICT['a'], return_soup=True, url=url, creator=creator)
+            file_link = LAMBDA_DICT['specified_file_link_slice']('/'.join(url.split('/')[:-1]) + '/', element, 0)
+        elif key == '農作物種植面積、產量':
+            element, soup = get_html_element(abc.SELECT_DICT['a2'], return_soup=True, url=url, creator=creator)
+            file_link = LAMBDA_DICT['specified_file_link_slice']('/'.join(url.split('/')[:-1]) + '/', element, 0)
+
         flag_year, datetime_start, datetime_end = datetime_maker(spec=creator.spec_day)
         format_keyword = abc.KEYWORD.format(flag_year-1)
-        find, text = pdfhandler.extract_text(io.BytesIO(requests.get(file_link).content), format_keyword)
+        find, text = find_kw(file_link, format_keyword, file_type='pdf')
         if find:
-            log.info(format_keyword, key, text[1:])
+            log.info(format_keyword, key, text)
         else:
-            if int(text[1:text.index('年')]) < flag_year-1:
+            if int(text[:text.index('年')]) < flag_year-1:
                 mailhandler.set_msg(False, url, key, str(flag_year-1)+'年')
             else:
-                mailhandler.set_msg(True, url, key, str(flag_year - 1)+'年', text[1:text.index('年')+1])
-            err_log.warning(format_keyword, key, text[1:])
+                mailhandler.set_msg(True, url, key, str(flag_year - 1)+'年', text[:text.index('年')+1])
+            err_log.warning(format_keyword, key, text)
 
 
 def extract_apis_afa(key, url) -> None:
