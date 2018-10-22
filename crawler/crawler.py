@@ -282,7 +282,7 @@ def extract_wood_price(key, url) -> None:
 
 
 def extract_agrstat_book(key, url) -> None:
-    if key in ['糧食供需統計', '農作物種植面積、產量', '畜牧用地面積', '畜產品生產成本', '毛豬飼養頭數']:
+    if key in ['糧食供需統計', '農作物種植面積、產量', '畜牧用地面積', '畜產品生產成本', '毛豬飼養頭數', '農業及農食鏈統計']:
         creator = abc(key)
         element = get_html_element(creator.get_selector(), return_soup=False, url=url, creator=creator)
         file_link = LAMBDA_DICT['specified_file_link_slice']('/'.join(url.split('/')[:-1]) + '/', element, 0)
@@ -307,11 +307,14 @@ def extract_agrstat_book(key, url) -> None:
         else:
             flag_year, datetime_start, datetime_end = datetime_maker(spec=creator.spec_day)
             format_keyword = abc.KEYWORD.format(flag_year-1)
-            find, text = find_kw(file_link, format_keyword, file_type='pdf')
+            if key == '農業及農食鏈統計':
+                find, text = find_kw(file_link, format_keyword, file_type='ods')
+            else:
+                find, text = find_kw(file_link, format_keyword, file_type='pdf')
             if find:
                 log.info(format_keyword, key, text)
             else:
-                if int(text[:text.index('年')]) < flag_year-1:
+                if int(text[text.index('1'):text.index('年')]) < flag_year-1:
                     mailhandler.set_msg(False, url, key, str(flag_year-1)+'年')
                 else:
                     mailhandler.set_msg(True, url, key, str(flag_year - 1)+'年', text[:text.index('年')+1])
@@ -320,7 +323,7 @@ def extract_agrstat_book(key, url) -> None:
 
 def extract_apis_afa(key, url) -> None:
     flag_month, datetime_start, datetime_end = datetime_maker(day=aac.DAY)
-    format_keyword = aac.KEYWORD.format(AD_YEAR, int(flag_month) - 1)
+    format_keyword = aac.KEYWORD.format(AD_YEAR, int(flag_month)-1)
     driver = get_web_driver()
     try:
         driver.get(url)

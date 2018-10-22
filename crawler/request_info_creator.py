@@ -170,6 +170,7 @@ class AgrstatBookCreator(BaseCreator):
         'a3': '#ctl00_cphMain_uctlBook_repChapter_ctl56_dtlFile_ctl01_lnkFile',
         'a4': '#ctl00_cphMain_uctlBook_repChapter_ctl00_lnkChapter',
         'a5': '#ctl00_cphMain_uctlBook_repChapter_ctl02_dtlFile_ctl02_lnkFile',
+        'a6': '#ctl00_cphMain_uctlBook_repChapter_ctl26_dtlFile_ctl00_lnkFile',
     }
 
     def __init__(self, kw):
@@ -202,10 +203,13 @@ class AgrstatBookCreator(BaseCreator):
                 '__VIEWSTATEGENERATOR': 'AC7AE538',
                 '__EVENTVALIDATION': LongText.NUMBER_OF_PIG_EVENTVALIDATION
             }
-        elif kw == '農作物種植面積、產量' or kw == '畜牧用地面積':
+        elif kw in ['農作物種植面積、產量', '畜牧用地面積', '農業及農食鏈統計']:
             if kw == '農作物種植面積、產量':
                 self.spec_day = '05311700'
                 self.a_tag = AgrstatBookCreator.SELECT_DICT['a2']
+            elif kw == '農業及農食鏈統計':
+                self.spec_day = '12101600'
+                self.a_tag = AgrstatBookCreator.SELECT_DICT['a6']
             else:
                 self.spec_day = '04301700'
                 self.a_tag = AgrstatBookCreator.SELECT_DICT['a3']
