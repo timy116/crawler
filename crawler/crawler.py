@@ -28,6 +28,7 @@ from request_info_creator import (
     ApisAfaCreator as aac,
     PirceNaifCreator as pnc,
     BliCreator as bc,
+    PxwebCreator as pc,
 )
 
 kws_d = {}
@@ -58,8 +59,8 @@ def start_crawler(key, url) -> None:
     # elif url.find('woodprice') != -1:
     #     extract_wood_price(key, url)
     #
-    if url.find('book') != -1:
-        extract_agrstat_book(key, url)
+    # elif url.find('book') != -1:
+    #     extract_agrstat_book(key, url)
     #
     # elif url.find('apis.afa.gov.tw') != -1:
     #     extract_apis_afa(key, url)
@@ -69,6 +70,9 @@ def start_crawler(key, url) -> None:
     #
     # elif url.find('www.bli.gov.tw') != -1:
     #     extract_bli(key, url)
+    #
+    if url.find('210.69.71.166') != -1:
+        extract_pxweb(key, url)
 
 
 def extract_agrstat_official_info(key, url) -> None:
@@ -389,5 +393,29 @@ def extract_bli(key, url):
             err_log.warning(format_keyword, key, text)
 
 
-if __name__ == '__main__':
-    pdfhandler.read_all_pdf(Base.PDF_PATH)
+def extract_pxweb(key, url):
+    flag_year, datetime_start, datetime_end = datetime_maker(spec=pc.SPEC_DAY)
+    format_keyword = pc.KEYWORD.format(flag_year-1)
+    driver = get_web_driver()
+    try:
+        driver.get(pc.URL)
+        # 總戶口 or 農家戶口
+        Select(driver.find_element_by_name('values1')).select_by_value('2')
+        # 全選 or 不全選
+        driver.find_element_by_xpath(pc.SELECT_DICT['all']).click()
+        # 台北市
+        Select(driver.find_element_by_name('values3')).select_by_value('3')
+        # 確認送出
+        driver.find_element_by_name('sel').click()
+        driver.implicitly_wait(5)
+        element = get_html_element('td.stub2', page_source=driver.page_source)
+        texts = LAMBDA_DICT['kw_list'](element)[-2:]
+        # make translate table
+        table = str.maketrans(texts[0][:4], ' {}'.format(flag_year-2))
+        if all(i.translate(table).strip().find(format_keyword) != -1 for i in texts):
+            log.info(format_keyword, key, texts[0]+', '+texts[1])
+        else:
+            mailhandler.set_msg(False, key, url, format_keyword)
+            err_log.warning(format_keyword, key, texts[0]+', '+texts[1])
+    finally:
+        driver.quit()

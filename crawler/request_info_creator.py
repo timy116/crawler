@@ -258,3 +258,38 @@ class BliCreator(BaseCreator):
     SELECT_DICT = {
         'a': 'body > p:nth-of-type(2) > a:nth-of-type(1)',
     }
+
+
+class PxwebCreator(BaseCreator):
+    SPEC_DAY = '01021700'
+    KEYWORD = '{}年'
+    URL = 'http://210.69.71.166/Pxweb2007/Dialog/varval.asp?ma=AG0005B2A&ti=%B9A%C2%B3%B8p%B2%CE%ADp%B8%EA%AE%C6%AEw' \
+          '(%A6~)&path=../PXfile\CountyStatistics\%BBO%C6W%C2%B3%AD%B9%B2%CE%ADp%ADn%C4%FD\AG%C2%B3%ACF%C0%F4%B9%D2' \
+          '\%A4%A4%A4%E5&lang=9&Flag=Q,_newtarget='
+    SELECT_DICT = {
+        'all': '//td[@class="tdtop"][2]/a[contains(text(), "全選")]'
+    }
+
+    def __init__(self):
+        headers = {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Cookie': 'ASPSESSIONIDASDTCRAB = HFDNLILCEOHHAINOMMLLJKML',
+            'Host': '210.69.71.166',
+            'Origin': 'http://210.69.71.166',
+            'Referer': 'http://210.69.71.166/Pxweb2007/Dialog/varval.asp?ma=AG0005B2A&ti=%B9A%C2%B3%B8p%B2%CE%ADp%B8%EA%'
+                       'AE%C6%AEw(%A6~)&path=../PXfile\CountyStatistics\%BBO%C6W%C2%B3%AD%B9%B2%CE%ADp%ADn%C4%FD\AG%C2%B3'
+                       '%ACF%C0%F4%B9%D2\%A4%A4%A4%E5&lang=9&Flag=Q,_newtarget=',
+        }
+        super().__init__(headers)
+        self.form_data = {
+            'strList': '',
+            'var1': '(unable to decode value)',
+            'var2': '(unable to decode value)',
+            'var3': '(unable to decode value)',
+            'Valdavarden1': '1',
+            'Valdavarden2': '32',
+            'Valdavarden3': '1',
+            'varparm': 'ma=AG0005B2A&ti=%B9A%C2%B3%B8p%B2%CE%ADp%B8%EA%AE%C6%AEw%28%A6%7E%29&path=%2E%2E%2FPXfile%'
+                       '5CCountyStatistics%5C%BBO%C6W%C2%B3%AD%B9%B2%CE%ADp%ADn%C4%FD%5CAG%C2%B3%ACF%C0%F4%B9%D2'
+                       '%5C%A4%A4%A4%E5&xu=&yp=&lang=9',
+        }
