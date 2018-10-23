@@ -73,14 +73,14 @@ def find_kw(link, keyword, file_type='excel') -> tuple:
     text = ''
     if file_type == 'ods':
         calc = pyexcel_ods.get_data(io.BytesIO(req.get(link).content))
-        sheet = list(calc.values())[0]
-        for row in sheet:
-            for cell in row:
-                cell_text = str(cell).strip().replace(' ', '')
-                if any(cell_text.find(i) != -1 for i in ['時期', '月份']):
-                    text = cell_text
-                    if keyword in text:
-                        return True, text
+        for sheet in list(calc.values()):
+            for row in sheet:
+                for cell in row:
+                    cell_text = str(cell).strip().replace(' ', '')
+                    if any(cell_text.find(i) != -1 for i in ['時期', '月份', '民國']):
+                        text = cell_text
+                        if keyword in text:
+                            return True, text
         return False, text
 
     elif file_type == 'csv':
@@ -176,3 +176,11 @@ def get_web_driver() -> webdriver:
     option.add_argument('headless')
     driver = webdriver.Chrome(chrome_options=option)
     return driver
+
+
+if __name__ == '__main__':
+    import request_info_creator
+    creator = request_info_creator.PxwebCreator()
+    resp = req.post('http://210.69.71.166/Pxweb2007/Dialog/Saveshow.asp', data=creator.form_data, headers=creator.form_data)
+    soup = bs(resp.content, 'lxml')
+    print(soup.prettify())
