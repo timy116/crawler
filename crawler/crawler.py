@@ -59,8 +59,8 @@ def start_crawler(key, url) -> None:
     # elif url.find('woodprice') != -1:
     #     extract_wood_price(key, url)
     #
-    # elif url.find('book') != -1:
-    #     extract_agrstat_book(key, url)
+    if url.find('book') != -1:
+        extract_agrstat_book(key, url)
     #
     # elif url.find('apis.afa.gov.tw') != -1:
     #     extract_apis_afa(key, url)
@@ -71,8 +71,8 @@ def start_crawler(key, url) -> None:
     # elif url.find('www.bli.gov.tw') != -1:
     #     extract_bli(key, url)
     #
-    if url.find('210.69.71.166') != -1:
-        extract_pxweb(key, url)
+    # if url.find('210.69.71.166') != -1:
+    #     extract_pxweb(key, url)
 
 
 def extract_agrstat_official_info(key, url) -> None:
@@ -286,7 +286,8 @@ def extract_wood_price(key, url) -> None:
 
 
 def extract_agrstat_book(key, url) -> None:
-    if key in ['糧食供需統計', '農作物種植面積、產量', '畜牧用地面積', '畜產品生產成本', '毛豬飼養頭數', '農業及農食鏈統計']:
+    if key in ['糧食供需統計', '農作物種植面積、產量', '畜牧用地面積',
+               '畜產品生產成本', '毛豬飼養頭數', '農業及農食鏈統計', '畜禽飼養及屠宰頭（隻）數', '畜禽產品生產量值']:
         creator = abc(key)
         element = get_html_element(creator.get_selector(), return_soup=False, url=url, creator=creator)
         file_link = LAMBDA_DICT['specified_file_link_slice']('/'.join(url.split('/')[:-1]) + '/', element, 0)

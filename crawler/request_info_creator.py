@@ -171,6 +171,8 @@ class AgrstatBookCreator(BaseCreator):
         'a4': '#ctl00_cphMain_uctlBook_repChapter_ctl00_lnkChapter',
         'a5': '#ctl00_cphMain_uctlBook_repChapter_ctl02_dtlFile_ctl02_lnkFile',
         'a6': '#ctl00_cphMain_uctlBook_repChapter_ctl26_dtlFile_ctl00_lnkFile',
+        'a7': '#ctl00_cphMain_uctlBook_repChapter_ctl10_dtlFile_ctl01_lnkFile',
+        'a8': '#ctl00_cphMain_uctlBook_repChapter_ctl06_dtlFile_ctl01_lnkFile',
     }
 
     def __init__(self, kw):
@@ -203,8 +205,15 @@ class AgrstatBookCreator(BaseCreator):
                 '__VIEWSTATEGENERATOR': 'AC7AE538',
                 '__EVENTVALIDATION': LongText.NUMBER_OF_PIG_EVENTVALIDATION
             }
-        elif kw in ['農作物種植面積、產量', '畜牧用地面積', '農業及農食鏈統計']:
-            if kw == '農作物種植面積、產量':
+
+        elif kw in ['畜禽產品生產量值', '畜禽飼養及屠宰頭（隻）數', '農作物種植面積、產量', '畜牧用地面積', '農業及農食鏈統計']:
+            if kw == '畜禽產品生產量值':
+                self.spec_day = '04301700'
+                self.a_tag = AgrstatBookCreator.SELECT_DICT['a8']
+            elif kw == '畜禽飼養及屠宰頭（隻）數':
+                self.spec_day = '04301700'
+                self.a_tag = AgrstatBookCreator.SELECT_DICT['a7']
+            elif kw == '農作物種植面積、產量':
                 self.spec_day = '05311700'
                 self.a_tag = AgrstatBookCreator.SELECT_DICT['a2']
             elif kw == '農業及農食鏈統計':

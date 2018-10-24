@@ -176,11 +176,3 @@ def get_web_driver() -> webdriver:
     option.add_argument('headless')
     driver = webdriver.Chrome(chrome_options=option)
     return driver
-
-
-if __name__ == '__main__':
-    import request_info_creator
-    creator = request_info_creator.PxwebCreator()
-    resp = req.post('http://210.69.71.166/Pxweb2007/Dialog/Saveshow.asp', data=creator.form_data, headers=creator.form_data)
-    soup = bs(resp.content, 'lxml')
-    print(soup.prettify())
