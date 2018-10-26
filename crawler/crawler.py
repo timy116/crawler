@@ -53,14 +53,14 @@ def start_crawler(key, url) -> None:
     # elif url.find('0000575') != -1:
     #     extract_forest(key, url)
     #
-    # elif url.find('InquireAdvance') != -1:
-    #     extract_inquire_advance(key, url)
+    if url.find('InquireAdvance') != -1:
+        extract_inquire_advance(key, url)
     #
     # elif url.find('woodprice') != -1:
     #     extract_wood_price(key, url)
     #
-    if url.find('book') != -1:
-        extract_agrstat_book(key, url)
+    # elif url.find('book') != -1:
+    #     extract_agrstat_book(key, url)
     #
     # elif url.find('apis.afa.gov.tw') != -1:
     #     extract_apis_afa(key, url)
@@ -239,9 +239,9 @@ def extract_inquire_advance(key, url) -> None:
     """
     creator = ia(key)
 
-    if key == '老年農民福利津貼核付人數' or key == '老年農民福利津貼核付金額':
-        flag_month, datetime_start, datetime_end = datetime_maker(day=ia.ELDER_DAY)
-        keyword = ia.KEYWORD.format(int(flag_month)-2)
+    if key in ['老年農民福利津貼核付人數', '老年農民福利津貼核付金額', '農業生產結構']:
+        flag_year, datetime_start, datetime_end = datetime_maker(spec=creator.spec_day)
+        keyword = str(flag_year-1)+'年'
     else:
         flag_month, datetime_start, datetime_end = datetime_maker(day=ia.DAY)
         keyword = ia.KEYWORD.format(int(flag_month)-1)

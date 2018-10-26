@@ -108,6 +108,11 @@ class InquireAdvanceCreator(BaseCreator):
             self.form_data['ctl00$cphMain$uctlInquireAdvance$lstFieldGroup'] = '3099'
             self.form_data['__VIEWSTATE'] = LongText.FARMER_PAID_VIEWSTATE
             self.form_data['__EVENTVALIDATION'] = LongText.FARMER_PAID_EVENTVALIDATION
+        elif kw == '農業生產結構':
+            self.spec_day = '07151700'
+            self.form_data['ctl00$cphMain$uctlInquireAdvance$lstFieldGroup'] = '3080'
+            self.form_data['__VIEWSTATE'] = LongText.AGRICULTURE_VIEWSTATE
+            self.form_data['__EVENTVALIDATION'] = LongText.AGRICULTURE_EVENTVALIDATION
         elif kw == '老年農民福利津貼核付人數':
             self.form_data['ctl00$cphMain$uctlInquireAdvance$lstFieldGroup'] = '56'
             self.form_data['__VIEWSTATE'] = LongText.ELDER_NOP_VIEWSTATE
