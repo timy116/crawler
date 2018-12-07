@@ -3,9 +3,12 @@ import mailhandler
 import requests
 import sys
 import time
+import os
 import pdfhandler
 from const import Base
 from log import log, err_log
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.wait import WebDriverWait
 from log import SimpleLog as sl
@@ -50,11 +53,11 @@ def start_crawler(key, url) -> None:
     # elif url.find('swcb') != -1:
     #     extract_swcb(key, url)
     #
-    # elif url.find('0000575') != -1:
-    #     extract_forest(key, url)
+    if url.find('0000575') != -1:
+        extract_forest(key, url)
     #
-    if url.find('InquireAdvance') != -1:
-        extract_inquire_advance(key, url)
+    # elif url.find('InquireAdvance') != -1:
+    #     extract_inquire_advance(key, url)
     #
     # elif url.find('woodprice') != -1:
     #     extract_wood_price(key, url)
@@ -62,17 +65,20 @@ def start_crawler(key, url) -> None:
     # elif url.find('book') != -1:
     #     extract_agrstat_book(key, url)
     #
-    # elif url.find('apis.afa.gov.tw') != -1:
+    # if url.find('apis.afa.gov.tw') != -1:
     #     extract_apis_afa(key, url)
     #
-    # elif url.find('price.naif.org.tw') != -1:
+    # if url.find('price.naif.org.tw') != -1:
     #     extract_price_naif(key, url)
-    #
+    # #
     # elif url.find('www.bli.gov.tw') != -1:
     #     extract_bli(key, url)
     #
-    # if url.find('210.69.71.166') != -1:
+    # elif url.find('210.69.71.166') != -1:
     #     extract_pxweb(key, url)
+
+    # if url.find('itemNo=COI121') != -1:
+    #     extract_agrcost(url, key)
 
 
 def extract_agrstat_official_info(key, url) -> None:
@@ -206,6 +212,7 @@ def extract_forest(key, url) -> None:
                 if find:
                     log.info(format_keyword, k, text)
                 else:
+                    mailhandler.set_msg(False, k, url, format_keyword)
                     err_log.warning(format_keyword, k, text)
 
             if k == '林務局森林遊樂區收入' or k == '木材市價':
@@ -420,3 +427,52 @@ def extract_pxweb(key, url):
             err_log.warning(format_keyword, key, texts[0]+', '+texts[1])
     finally:
         driver.quit()
+
+
+def extract_agrcost(url, key):
+    if not os.path.isdir(Base.TEMP_PATH):
+        os.mkdir(Base.TEMP_PATH)
+    browser = get_web_driver()
+
+    def f(driver):
+        print('entry')
+        block = ec.staleness_of((By.CLASS_NAME, 'blockUI'))
+        return block(driver)
+    try:
+        browser.command_executor._commands["send_command"] = ("POST", '/session/$sessionId/chromium/send_command')
+        params = {
+            'cmd': 'Page.setDownloadBehavior',
+            'params': {'behavior': 'allow', 'downloadPath': Base.TEMP_PATH}
+        }
+        browser.execute("send_command", params)
+        browser.get(url)
+        Select(browser.find_element_by_name('WR1_1$Q_COD_Year_S$C1')).select_by_value(str(AD_YEAR - 1))
+        file_count = len(os.listdir(Base.TEMP_PATH))
+        for name in ['雜糧', '蔬菜', '特用作物及花卉', '果品']:
+        # for name in ['雜糧']:
+            Select(browser.find_element_by_id('WR1_1_Q_COD_Group_C1')).select_by_value(name)
+            browser.find_element_by_class_name('CSS_ABS_NormalLink').click()
+            # in staleness_of fn is check by element.is_enabled()
+            # use invisibility_of_element_located no effect because arg is locator
+            WebDriverWait(browser, 5).until(ec.staleness_of(browser.find_element_by_class_name('blockUI')))
+
+            i = 1
+            flag = True
+            while flag:
+                element, soup = get_html_element('a.CSS_AGBS_GridLink', page_source=browser.page_source, return_soup=True)
+                file_link = LAMBDA_DICT['file_link_list']('{}', element)
+                element = soup('#WR1_1_WG1 > tbody > tr > td:nth-of-type(3)')[1:]
+                name = LAMBDA_DICT['kw_list'](element)
+                print(name)
+
+                present = ec.visibility_of_all_elements_located((By.CLASS_NAME, 'dxpCtrl'))
+                if present(browser):
+                    i += 1
+                    if i > 2:
+                        break
+                    browser.find_element_by_xpath('//*[@id="WR1_1_WG1_B_A"]/tbody/tr/td/table/tbody/tr/td[9]').click()
+                    WebDriverWait(browser, 5).until(ec.staleness_of(browser.find_element_by_class_name('blockUI')))
+                else:
+                    flag = False
+    finally:
+        browser.quit()

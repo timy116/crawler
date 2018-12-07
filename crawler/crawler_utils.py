@@ -10,6 +10,7 @@ import pyexcel_ods
 import requests
 import time
 import xlrd
+from const import Base
 from pdfminer.pdfinterp import (
     PDFPageInterpreter,
     PDFResourceManager,
@@ -147,7 +148,6 @@ def datetime_maker(day=None, spec=None) -> tuple:
     if day:
         dateline = '{}{}1700'
         month = str(date.today().month).rjust(2, '0')
-
         # 判斷 now 是否大於當月日期, if True month=this month else month=previous month
         # ex: 09251700 < 09121700 ? if True month=09 else month=08
         flag_month = month if dateline.format(month, day[int(month)]) < now else str(int(month) - 1).rjust(2, '0')

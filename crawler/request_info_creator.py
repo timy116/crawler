@@ -248,7 +248,7 @@ class AgrstatBookCreator(BaseCreator):
 
 class ApisAfaCreator(BaseCreator):
     KEYWORD = '{}年{}月'
-    DAY = ['', 15, 21, 15, 16, 15, 15, 16, 15, 17, 15, 5, 5]
+    DAY = ['', 15, 21, 15, 16, 15, 15, 16, 15, 17, 15, '05', '05']
     SELECT_DICT = {
         'tr': '#WR1_1_WG1 > tbody > tr',
         'month_start': 'WR1_1_Q_PRSR_Month1_C1',

@@ -1,6 +1,12 @@
+import linecache
+import os
+
+PATH = 'info.txt'
+
+
 class Base:
-    EXCEL_PATH = 'C:\\Users\\travishen\\PycharmProjects\\crawler_project\\crawler_list.xlsx'
-    PDF_PATH = 'C:\\Users\\travishen\Desktop\\temp'
+    EXCEL_PATH = linecache.getline(PATH, 8).strip()
+    TEMP_PATH = os.getcwd() + '\\' + 'temp'
 
 
 class LongText:
