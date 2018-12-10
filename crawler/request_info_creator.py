@@ -19,8 +19,8 @@ class BaseCreator:
 
 # 公務統計
 class AgrstatOfficialInfoCreator(BaseCreator):
-    KEYWORDS_LENTH = 19
-    SELECT_DICT = {
+    __KEYWORDS_LENTH = 19
+    __SELECT_DICT = {
         'tr_row1': 'tr.Row > td:nth-of-type(3)',
         'tr_row2': 'tr.AlternatingRow > td:nth-of-type(3)',
         'td': 'tr.Pager > td > table > tbody > tr > td',
@@ -34,7 +34,7 @@ class AgrstatOfficialInfoCreator(BaseCreator):
         }
         super().__init__(headers)
 
-        self.form_data = {
+        self.__form_data = {
             '__EVENTTARGET': 'ctl00$cphMain$uctlOfficialInformation1$grdReport',
             '__EVENTARGUMENT': 'Page$1',
             '__VIEWSTATE': LongText.VIEWSTATE,
@@ -47,42 +47,88 @@ class AgrstatOfficialInfoCreator(BaseCreator):
             'ctl00$cphMain$uctlOfficialInformation1$txtQReportName': '',
             'ctl00$cphMain$uctlOfficialInformation1$ddlQOrganization': '0',
         }
-        self.page_index = 1
+        self.__page_index = 1
 
-    def next_page(self):
-        self.page_index += 1
+    @classmethod
+    def tag(cls, key) -> str:
+        return cls.__SELECT_DICT[key]
 
-    def get_page_index(self) -> str:
-        return str(self.page_index)
+    @property
+    def len(self) -> int:
+        return self.__KEYWORDS_LENTH
+
+    @property
+    def page(self) -> str:
+        return str(self.__page_index)
+
+    @page.setter
+    def page(self, i):
+        self.__page_index += i
 
 
 class SwcbCreator(BaseCreator):
-    KEYWORDS_LENTH = 3
-    KEYWORD = '中華民國{}年度'
-    SPECIFIED_DAY = '05151700'
-    SELECT_DICT = {
+    __KEYWORDS_LENTH = 3
+    __KEYWORD = '中華民國{}年度'
+    __SPECIFIED_DAY = '05151700'
+    __SELECT_DICT = {
         'h3': 'div.lastList > ul > li > a > h3',
         'a': 'div.lastList > ul > li > a',
     }
 
+    @property
+    def len(self) -> int:
+        return self.__KEYWORDS_LENTH
+
+    @property
+    def kw(self) -> str:
+        return self.__KEYWORD
+
+    @property
+    def day(self) -> str:
+        return self.__SPECIFIED_DAY
+
+    @classmethod
+    def tag(cls, key) -> str:
+        return cls.__SELECT_DICT[key]
+
 
 class ForestCreator(BaseCreator):
-    KEYWORDS_LENTH = 7
-    KEYWORD = '中華民國{}年度'
-    INCOME_KEYWORD = '{}年{}月'
-    WOOD_KEYWORD = '{}年{}月'
-    DAY = ['', 25, 26, 26, 25, 25, 25, 25, 27, 25, 25, 26, 25]
-    SELECT_DICT = {
+    __KEYWORDS_LENTH = 7
+    __KEYWORD = '中華民國{}年度'
+    __INCOME_KEYWORD = '{}年{}月'
+    __WOOD_KEYWORD = '{}年{}月'
+    __DAY = ['', 25, 26, 26, 25, 25, 25, 25, 27, 25, 25, 26, 25]
+    __SELECT_DICT = {
         'td_of_1': '#divContent > div.downloadBox > table > tbody > tr > td:nth-of-type(1)',
         'a': '#divContent > div.downloadBox > table > tbody > tr > td > a',
     }
 
+    @property
+    def len(self) -> int:
+        return self.__KEYWORDS_LENTH
+
+    @property
+    def kw(self) -> str:
+        return self.__KEYWORD
+
+    @property
+    def date(self):
+        return self.__INCOME_KEYWORD
+
+    @property
+    def days(self) -> list:
+        return self.__DAY
+
+    @classmethod
+    def tag(cls, key) -> str:
+        return cls.__SELECT_DICT[key]
+
 
 class InquireAdvanceCreator(BaseCreator):
-    KEYWORD = '{}月'
-    DAY = ['', 21, 20, 20, 22, 20, 20, 22, 20, 20, 22, 20, 20]
-    ELDER_DAY = ['', 22, 21, 20, 20, 21, 20, 20, 20, 20, 15, 15, 17]
-    SELECT_DICT = {
+    __KEYWORD = '{}月'
+    __DAY = ['', 21, 20, 20, 22, 20, 20, 22, 20, 20, 22, 20, 20]
+    __ELDER_DAY = ['', 22, 21, 20, 20, 21, 20, 20, 20, 20, 15, 15, 17]
+    __SELECT_DICT = {
         'tr': '#ctl00_cphMain_uctlInquireAdvance_tabResult > tr',
     }
 
@@ -94,7 +140,7 @@ class InquireAdvanceCreator(BaseCreator):
         }
         super().__init__(headers)
 
-        self.form_data = {
+        self.__form_data = {
             '__EVENTTARGET': '',
             '__EVENTARGUMENT': '',
             '__VIEWSTATE': LongText.FARMER_INCOME_VIEWSTATE,
@@ -105,34 +151,46 @@ class InquireAdvanceCreator(BaseCreator):
             '__LASTFOCUS': '',
         }
         if kw == '農民生產所付物價指數':
-            self.form_data['ctl00$cphMain$uctlInquireAdvance$lstFieldGroup'] = '3099'
-            self.form_data['__VIEWSTATE'] = LongText.FARMER_PAID_VIEWSTATE
-            self.form_data['__EVENTVALIDATION'] = LongText.FARMER_PAID_EVENTVALIDATION
+            self.__form_data['ctl00$cphMain$uctlInquireAdvance$lstFieldGroup'] = '3099'
+            self.__form_data['__VIEWSTATE'] = LongText.FARMER_PAID_VIEWSTATE
+            self.__form_data['__EVENTVALIDATION'] = LongText.FARMER_PAID_EVENTVALIDATION
         elif kw == '農業生產結構':
             self.spec_day = '07151700'
-            self.form_data['ctl00$cphMain$uctlInquireAdvance$lstFieldGroup'] = '3080'
-            self.form_data['__VIEWSTATE'] = LongText.AGRICULTURE_VIEWSTATE
-            self.form_data['__EVENTVALIDATION'] = LongText.AGRICULTURE_EVENTVALIDATION
+            self.__form_data['ctl00$cphMain$uctlInquireAdvance$lstFieldGroup'] = '3080'
+            self.__form_data['__VIEWSTATE'] = LongText.AGRICULTURE_VIEWSTATE
+            self.__form_data['__EVENTVALIDATION'] = LongText.AGRICULTURE_EVENTVALIDATION
         elif kw == '老年農民福利津貼核付人數':
-            self.form_data['ctl00$cphMain$uctlInquireAdvance$lstFieldGroup'] = '56'
-            self.form_data['__VIEWSTATE'] = LongText.ELDER_NOP_VIEWSTATE
-            self.form_data['__EVENTVALIDATION'] = LongText.ELDER_NOP_EVENTVALIDATION
+            self.__form_data['ctl00$cphMain$uctlInquireAdvance$lstFieldGroup'] = '56'
+            self.__form_data['__VIEWSTATE'] = LongText.ELDER_NOP_VIEWSTATE
+            self.__form_data['__EVENTVALIDATION'] = LongText.ELDER_NOP_EVENTVALIDATION
         elif kw == '老年農民福利津貼核付金額':
-            self.form_data['ctl00$cphMain$uctlInquireAdvance$lstFieldGroup'] = '57'
-            self.form_data['__VIEWSTATE'] = LongText.ELDER_AMOUNT_VIEWSTATE
-            self.form_data['__EVENTVALIDATION'] = LongText.ELDER_AMOUNT_EVENTVALIDATION
+            self.__form_data['ctl00$cphMain$uctlInquireAdvance$lstFieldGroup'] = '57'
+            self.__form_data['__VIEWSTATE'] = LongText.ELDER_AMOUNT_VIEWSTATE
+            self.__form_data['__EVENTVALIDATION'] = LongText.ELDER_AMOUNT_EVENTVALIDATION
+
+    @property
+    def days(self) -> list:
+        return self.__DAY
+
+    @property
+    def kw(self) -> str:
+        return self.__KEYWORD
+
+    @classmethod
+    def tag(cls, key) -> str:
+        return cls.__SELECT_DICT[key]
 
     def set_start_date(self, date):
-        self.form_data['ctl00$cphMain$uctlInquireAdvance$ddlMonthBegin'] = date
+        self.__form_data['ctl00$cphMain$uctlInquireAdvance$ddlMonthBegin'] = date
 
     def set_end_date(self, date):
-        self.form_data['ctl00$cphMain$uctlInquireAdvance$ddlMonthEnd'] = date
+        self.__form_data['ctl00$cphMain$uctlInquireAdvance$ddlMonthEnd'] = date
 
 
 class WoodPriceCreator(BaseCreator):
-    KEYWORD = '{}年{}月'
-    DAY = ['', 25, 26, 26, 25, 25, 25, 25, 27, 25, 25, 26, 25]
-    SELECT_DICT = {
+    __KEYWORD = '{}年{}月'
+    __DAY = ['', 25, 26, 26, 25, 25, 25, 25, 27, 25, 25, 26, 25]
+    __SELECT_DICT = {
         'tr_of_2': '#ctl00_Main_q2_gv > tr:nth-of-type(2)',
     }
 
@@ -159,6 +217,18 @@ class WoodPriceCreator(BaseCreator):
             'ctl00$Main$q2_btn_Query': '查詢',
         }
 
+    @property
+    def kw(self) -> str:
+        return self.__KEYWORD
+
+    @property
+    def days(self) -> list:
+        return self.__DAY
+
+    @classmethod
+    def tag(cls, key) -> str:
+        return cls.__SELECT_DICT[key]
+
     def set_years(self, year):
         self.form_data['ctl00$Main$CompareQueryUi1$q1_ddl_years'] = str(year)
 
@@ -167,9 +237,9 @@ class WoodPriceCreator(BaseCreator):
 
 
 class AgrstatBookCreator(BaseCreator):
-    KEYWORD = '{}年'
-    NUMBER_OF_PIG_KEYWORD = '{}年{}月底'
-    SELECT_DICT = {
+    __KEYWORD = '{}年'
+    __NUMBER_OF_PIG_KEYWORD = '{}年{}月底'
+    __SELECT_DICT = {
         'a': '#ctl00_cphMain_uctlBook_repChapter_ctl07_dtlFile_ctl01_lnkFile',
         'a2': '#ctl00_cphMain_uctlBook_repChapter_ctl09_dtlFile_ctl01_lnkFile',
         'a3': '#ctl00_cphMain_uctlBook_repChapter_ctl56_dtlFile_ctl01_lnkFile',
@@ -182,9 +252,9 @@ class AgrstatBookCreator(BaseCreator):
 
     def __init__(self, kw):
         if kw == '糧食供需統計':
-            self.spec_day = '10011700'
-            self.a_tag = AgrstatBookCreator.SELECT_DICT['a']
-            self.form_data = {
+            self.__spec_day = '10011700'
+            self.__a_tag = AgrstatBookCreator.__SELECT_DICT['a']
+            self.__form_data = {
                 '__EVENTTARGET': 'ctl00$cphMain$uctlBook$grdBook$ctl03$btnBookName',
                 '__EVENTARGUMENT': '',
                 '__VIEWSTATE': LongText.PROVISION_VIEWSTATE,
@@ -192,9 +262,9 @@ class AgrstatBookCreator(BaseCreator):
                 '__EVENTVALIDATION': LongText.PROVISION_EVENTVALIDATION
             }
         elif kw == '畜產品生產成本':
-            self.spec_day = '07171700'
-            self.a_tag = AgrstatBookCreator.SELECT_DICT['a4']
-            self.form_data = {
+            self.__spec_day = '07171700'
+            self.__a_tag = AgrstatBookCreator.__SELECT_DICT['a4']
+            self.__form_data = {
                 '__EVENTTARGET': 'ctl00$cphMain$uctlBook$grdBook$ctl06$btnBookName',
                 '__EVENTARGUMENT': '',
                 '__VIEWSTATE': LongText.LIVESTOCK_PRODUCT_COST_VIEWSTATE,
@@ -202,8 +272,8 @@ class AgrstatBookCreator(BaseCreator):
                 '__EVENTVALIDATION': LongText.LIVESTOCK_PRODUCT_COST_EVENTVALIDATION
             }
         elif kw == '毛豬飼養頭數':
-            self.a_tag = AgrstatBookCreator.SELECT_DICT['a5']
-            self.form_data = {
+            self.__a_tag = AgrstatBookCreator.__SELECT_DICT['a5']
+            self.__form_data = {
                 '__EVENTTARGET': 'ctl00$cphMain$uctlBook$grdBook$ctl08$btnBookName',
                 '__EVENTARGUMENT': '',
                 '__VIEWSTATE': LongText.NUMBER_OF_PIG_VIEWSTATE,
@@ -213,22 +283,22 @@ class AgrstatBookCreator(BaseCreator):
 
         elif kw in ['畜禽產品生產量值', '畜禽飼養及屠宰頭（隻）數', '農作物種植面積、產量', '畜牧用地面積', '農業及農食鏈統計']:
             if kw == '畜禽產品生產量值':
-                self.spec_day = '04301700'
-                self.a_tag = AgrstatBookCreator.SELECT_DICT['a8']
+                self.__spec_day = '04301700'
+                self.__a_tag = AgrstatBookCreator.__SELECT_DICT['a8']
             elif kw == '畜禽飼養及屠宰頭（隻）數':
-                self.spec_day = '04301700'
-                self.a_tag = AgrstatBookCreator.SELECT_DICT['a7']
+                self.__spec_day = '04301700'
+                self.__a_tag = AgrstatBookCreator.__SELECT_DICT['a7']
             elif kw == '農作物種植面積、產量':
-                self.spec_day = '05311700'
-                self.a_tag = AgrstatBookCreator.SELECT_DICT['a2']
+                self.__spec_day = '05311700'
+                self.__a_tag = AgrstatBookCreator.__SELECT_DICT['a2']
             elif kw == '農業及農食鏈統計':
-                self.spec_day = '12101600'
-                self.a_tag = AgrstatBookCreator.SELECT_DICT['a6']
+                self.__spec_day = '12101600'
+                self.__a_tag = AgrstatBookCreator.__SELECT_DICT['a6']
             else:
-                self.spec_day = '04301700'
-                self.a_tag = AgrstatBookCreator.SELECT_DICT['a3']
+                self.__spec_day = '04301700'
+                self.__a_tag = AgrstatBookCreator.__SELECT_DICT['a3']
 
-            self.form_data = {
+            self.__form_data = {
                 '__EVENTTARGET': 'ctl00$cphMain$uctlBook$grdBook$ctl09$btnBookName',
                 '__EVENTARGUMENT': '',
                 '__VIEWSTATE': LongText.CROP_AREA_YIELD_VIEWSTATE,
@@ -242,14 +312,27 @@ class AgrstatBookCreator(BaseCreator):
         }
         super().__init__(headers)
 
-    def get_selector(self):
-        return self.a_tag
+    @property
+    def kw(self):
+        return self.__KEYWORD
+
+    @property
+    def date(self):
+        return self.__NUMBER_OF_PIG_KEYWORD
+
+    @property
+    def tag(self):
+        return self.__a_tag
+
+    @property
+    def day(self):
+        return self.__spec_day
 
 
 class ApisAfaCreator(BaseCreator):
-    KEYWORD = '{}年{}月'
-    DAY = ['', 15, 21, 15, 16, 15, 15, 16, 15, 17, 15, '05', '05']
-    SELECT_DICT = {
+    __KEYWORD = '{}年{}月'
+    __DAY = ['', 15, 21, 15, 16, 15, 15, 16, 15, 17, 15, '05', '05']
+    __SELECT_DICT = {
         'tr': '#WR1_1_WG1 > tbody > tr',
         'month_start': 'WR1_1_Q_PRSR_Month1_C1',
         'month_end': 'WR1_1_Q_PRSR_Month2_C1',
@@ -257,30 +340,67 @@ class ApisAfaCreator(BaseCreator):
         'search_button': 'CSS_ABS_NormalLink',
     }
 
+    @property
+    def kw(self) -> str:
+        return self.__KEYWORD
+
+    @property
+    def days(self) -> list:
+        return self.__DAY
+
+    @classmethod
+    def tag(cls, key) -> str:
+        return cls.__SELECT_DICT[key]
+
 
 class PirceNaifCreator(BaseCreator):
-    DAY = ['', 15, 21, 15, 16, 15, 15, 16, 15, 17, 15, 15, 17]
-    SELECT_DICT = {
+    __DAY = ['', 15, 21, 15, 16, 15, 15, 16, 15, 17, 15, 15, 17]
+    __SELECT_DICT = {
         'option': '#ContentPlaceHolder_content_DropDownList_month > option'
     }
 
+    @property
+    def days(self) -> list:
+        return self.__DAY
+
+    @classmethod
+    def tag(cls, key) -> str:
+        return cls.__SELECT_DICT[key]
+
 
 class BliCreator(BaseCreator):
-    KEYWORD = '{}年{}月'
-    ELDER_DAY = ['', 22, 21, 20, 20, 21, 20, 20, 20, 20, 15, 15, 17]
-    URL = 'https://www.bli.gov.tw/reportM.aspx?m=107{}&f=a7010'
-    SELECT_DICT = {
+    __KEYWORD = '{}年{}月'
+    __ELDER_DAY = ['', 22, 21, 20, 20, 21, 20, 20, 20, 20, 15, 15, 17]
+    __URL = 'https://www.bli.gov.tw/reportM.aspx?m=107{}&f=a7010'
+    __SELECT_DICT = {
         'a': 'body > p:nth-of-type(2) > a:nth-of-type(1)',
     }
 
+    @property
+    def kw(self):
+        return self.__KEYWORD
+
+    @property
+    def url(self):
+        return self.__URL
+
+    @property
+    def days(self) -> list:
+        return self.__ELDER_DAY
+
+    @classmethod
+    def tag(cls, key) -> str:
+        return cls.__SELECT_DICT[key]
+
 
 class PxwebCreator(BaseCreator):
-    SPEC_DAY = '01021700'
-    KEYWORD = '{}年'
-    URL = 'http://210.69.71.166/Pxweb2007/Dialog/varval.asp?ma=AG0005B2A&ti=%B9A%C2%B3%B8p%B2%CE%ADp%B8%EA%AE%C6%AEw' \
+    __SPEC_DAY = '01021700'
+    __KEYWORD = '{}年'
+    __URL = 'http://210.69.71.166/Pxweb2007/Dialog/varval.asp?ma=AG0005B2A&ti=%B9A%C2%B3%B8p%B2%CE%ADp%B8%EA%AE%C6%AEw' \
           '(%A6~)&path=../PXfile\CountyStatistics\%BBO%C6W%C2%B3%AD%B9%B2%CE%ADp%ADn%C4%FD\AG%C2%B3%ACF%C0%F4%B9%D2' \
           '\%A4%A4%A4%E5&lang=9&Flag=Q,_newtarget='
-    SELECT_DICT = {
+
+    __SELECT_DICT = {
         'all': '//td[@class="tdtop"][2]/a[contains(text(), "全選")]'
     }
 
@@ -295,7 +415,7 @@ class PxwebCreator(BaseCreator):
                        '%ACF%C0%F4%B9%D2\%A4%A4%A4%E5&lang=9&Flag=Q,_newtarget=',
         }
         super().__init__(headers)
-        self.form_data = {
+        self.__form_data = {
             'strList': '',
             'var1': '(unable to decode value)',
             'var2': '(unable to decode value)',
@@ -307,3 +427,19 @@ class PxwebCreator(BaseCreator):
                        '5CCountyStatistics%5C%BBO%C6W%C2%B3%AD%B9%B2%CE%ADp%ADn%C4%FD%5CAG%C2%B3%ACF%C0%F4%B9%D2'
                        '%5C%A4%A4%A4%E5&xu=&yp=&lang=9',
         }
+
+    @property
+    def kw(self):
+        return self.__KEYWORD
+
+    @property
+    def url(self):
+        return self.__URL
+
+    @property
+    def day(self) -> str:
+        return self.__SPEC_DAY
+
+    @classmethod
+    def tag(cls, key) -> str:
+        return cls.__SELECT_DICT[key]
