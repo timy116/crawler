@@ -1,13 +1,16 @@
 from bs4 import BeautifulSoup as bs
 from datetime import date
 from log import SimpleLog as sl
+from log import log, err_log
 from pdfminer.converter import PDFPageAggregator
 from pdfminer.layout import LTTextBoxHorizontal, LAParams
 from selenium import webdriver
 import csv
 import io
+import os
 import pyexcel_ods
 import requests
+import shelve
 import time
 import xlrd
 from const import Base
@@ -63,12 +66,32 @@ def get_html_element(*args, method='post', page_source=None, return_soup=False, 
         return element_list
 
 
-def find_kw(link, keyword, file_type='excel') -> tuple:
+def read_all_pdf(path, key, kw, date_tuple):
+    with shelve.open('../mapping') as f:
+        mapping = f['mapping']
+
+    for index, file in enumerate(os.listdir(path)):
+        if file.endswith('.crdownload'):
+            continue
+        if index > 0:
+            sl.set_msg(date_tuple[1], date_tuple[2])
+
+        pdf = open(path + '/' + file, 'rb')
+        find, text = find_kw(pdf, kw, file_type='pdf', parse=True)
+
+        if find:
+            log.info(kw, key, mapping[file] + '-' + text)
+        else:
+            err_log.warning(kw, key, mapping[file] + '-' + text)
+
+
+def find_kw(link, keyword, file_type='excel', parse=False) -> tuple:
     """
-    開啟 excel 並確認年度是否正確
+    judge the file type then inspection year
     :param link: files url
     :param keyword: keyword select
-    :param file_type:
+    :param file_type: csv, excel, ods, pdf
+    :param parse: PDF file or IO stream ?
     :return: tuple
     """
     text = ''
@@ -97,7 +120,11 @@ def find_kw(link, keyword, file_type='excel') -> tuple:
                         return False, text
 
     elif file_type == 'pdf':
-        parser = PDFParser(io.BytesIO(req.get(link).content))
+        if parse:
+            parser = PDFParser(link)
+        else:
+            parser = PDFParser(io.BytesIO(req.get(link).content))
+
         doc = PDFDocument()
         parser.set_document(doc)
         doc.set_parser(parser)
@@ -115,7 +142,7 @@ def find_kw(link, keyword, file_type='excel') -> tuple:
             for o in layout:
                 if isinstance(o, LTTextBoxHorizontal):
                     pdf_text = o.get_text().strip()
-                    if any(pdf_text.find(i) != -1 for i in ['時期', '年']):
+                    if any(pdf_text.find(i) != -1 for i in ['時期', '年', '年期']):
                         text = pdf_text.split(' ')[-1]
                     if text.find(keyword) != -1:
                         return True, text
@@ -165,7 +192,7 @@ def datetime_maker(day=None, spec=None) -> tuple:
         return flag_year, datetime_start, datetime_end
 
 
-def get_web_driver() -> webdriver:
+def get_web_driver(dl_permission=False) -> webdriver:
     """
     設定 Chrome 參數並回傳
     :return: webdriver object
@@ -175,4 +202,11 @@ def get_web_driver() -> webdriver:
     option.add_argument('--disable-gpu')
     option.add_argument('headless')
     driver = webdriver.Chrome(chrome_options=option)
+    if dl_permission:
+        driver.command_executor._commands["send_command"] = ("POST", '/session/$sessionId/chromium/send_command')
+        params = {
+            'cmd': 'Page.setDownloadBehavior',
+            'params': {'behavior': 'allow', 'downloadPath': Base.TEMP_PATH}
+        }
+        driver.execute("send_command", params)
     return driver

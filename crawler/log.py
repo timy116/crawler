@@ -14,7 +14,7 @@ class SimpleLog(object):
         stream_handler = logging.StreamHandler()
         stream_handler.setFormatter(formatter)
         self.logger.addHandler(stream_handler)
-        log_file = './' + file_name + '.log'
+        log_file = '../' + file_name + '.log'
         file_handler = logging.FileHandler(log_file, encoding='utf8')
         file_handler.setFormatter(formatter)
         self.logger.addHandler(file_handler)

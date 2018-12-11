@@ -1,12 +1,10 @@
-import io
 import mailhandler
-import requests
 import sys
 import time
 import os
-import pdfhandler
 from const import Base
 from log import log, err_log
+from pprint import pprint
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import Select
@@ -20,6 +18,7 @@ from crawler_utils import (
     find_kw,
     get_html_element,
     get_web_driver,
+    read_all_pdf,
 )
 from request_info_creator import (
     AgrstatOfficialInfoCreator as agroff,
@@ -32,6 +31,7 @@ from request_info_creator import (
     PirceNaifCreator as pnc,
     BliCreator as bc,
     PxwebCreator as pc,
+    AgrCostCreator as acc,
 )
 
 kws_d = {}
@@ -77,8 +77,8 @@ def start_crawler(key, url) -> None:
     # elif url.find('210.69.71.166') != -1:
     #     extract_pxweb(key, url)
 
-    if url.find('itemNo=COI121') != -1:
-        extract_agrcost(url, key)
+    # if url.find('itemNo=COI121') != -1:
+    #     extract_agrcost(url, key)
 
 
 def extract_agrstat_official_info(key, url) -> None:
@@ -91,7 +91,7 @@ def extract_agrstat_official_info(key, url) -> None:
     :return: None
     """
     kws_d[key] = ''
-    if len(kws_d) == agroff.len:
+    if len(kws_d) == agroff.len():
         creator = agroff()
         driver = get_web_driver()
         driver.get(url)
@@ -99,6 +99,7 @@ def extract_agrstat_official_info(key, url) -> None:
             if len(kws_d) == 0:
                 driver.quit()
                 break
+
             try:
                 element, soup = get_html_element(agroff.tag('tr_row1'), agroff.tag('tr_row2'),
                                                  page_source=driver.page_source, return_soup=True)
@@ -112,8 +113,7 @@ def extract_agrstat_official_info(key, url) -> None:
                 flag = LAMBDA_DICT['specified_element_text'](soup(agroff.tag('td')), -1)
                 if flag == '...':
                     if creator.page.endswith('0'):
-                        driver.find_element_by_xpath(
-                            '//tr[@class="Pager"]/td/table/tbody/tr/td[last()]/a[contains(text(), "...")]').click()
+                        driver.find_element_by_xpath(creator.tag('more_page')).click()
                         creator.page = 1
                         continue
                 else:
@@ -123,11 +123,9 @@ def extract_agrstat_official_info(key, url) -> None:
                             err_log.warning('not found keyword: ', kws_d.keys(), unpacking=False)
                         print('Page end, ', creator.page, 'pages')
                         break
-                creator.page = 1
-                driver.find_element_by_xpath(
-                    '//tr[@class="Pager"]/td/table/tbody/tr/td/a[contains(text(), ' + creator.page + ')]')\
-                    .click()
 
+                creator.page = 1
+                driver.find_element_by_xpath(creator.tag('page').format(creator.page)).click()
                 driver.implicitly_wait(3)
             except Exception:
                 driver.quit()
@@ -176,16 +174,18 @@ def extract_swcb(key, url) -> None:
 
 def extract_forest(key, url) -> None:
     forest_kws_l.append(key)
-    if len(forest_kws_l) == fc.len:
+    if len(forest_kws_l) == fc.len():
         creator = fc()
         k_f_l_d = {}
         element, soup = get_html_element(fc.tag('td_of_1'), method='get',
                                          return_soup=True, url=url, creator=creator)
         kw = LAMBDA_DICT['kw_list'](element)
         file_link = LAMBDA_DICT['file_link_list']('/'.join(url.split('/')[:-1]) + '{}', soup(fc.tag('a')))
+
         for w, f in zip(kw, file_link):
             if any((w.find(i) != -1) for i in forest_kws_l):
                 k_f_l_d[w] = f
+
         for k, v in k_f_l_d.items():
             if k == '造林面積':
                 now = time.strftime('%m%d%H%M')
@@ -208,7 +208,7 @@ def extract_forest(key, url) -> None:
                     datetime_start = month[10]
                     datetime_end = month[1]
                 sl.set_msg(datetime_start, datetime_end)
-                find, text = pdfhandler.extract_text(io.BytesIO(requests.get(v).content), format_keyword)
+                find, text = find_kw(v, format_keyword, 'ods')
                 if find:
                     log.info(format_keyword, k, text)
                 else:
@@ -216,11 +216,11 @@ def extract_forest(key, url) -> None:
                     err_log.warning(format_keyword, k, text)
 
             if k == '林務局森林遊樂區收入' or k == '木材市價':
-                flag_month, datetime_start, datetime_end = datetime_maker(day=fc.days)
+                flag_month, datetime_start, datetime_end = datetime_maker(day=creator.days)
                 if k == '林務局森林遊樂區收入':
-                    format_keyword = fc.days.format(YEAR, int(flag_month)-1)
+                    format_keyword = creator.income_date.format(YEAR, int(flag_month)-1)
                 else:
-                    format_keyword = fc.days.format(YEAR, int(flag_month)-1)
+                    format_keyword = creator.wood_date.format(YEAR, int(flag_month)-1)
                 find, text = find_kw(v, format_keyword, 'ods')
                 if find:
                     log.info(format_keyword, k, text)
@@ -446,22 +446,19 @@ def extract_pxweb(key, url):
 def extract_agrcost(url, key):
     if not os.path.isdir(Base.TEMP_PATH):
         os.mkdir(Base.TEMP_PATH)
-    browser = get_web_driver()
 
+    creator = acc()
+    date_tuple = datetime_maker(spec=creator.day)
+    keyword = creator.kw.format(date_tuple[0] - 1)
+    read_all_pdf(Base.TEMP_PATH, key, keyword, date_tuple)
+    browser = get_web_driver(dl_permission=True)
     try:
-        browser.command_executor._commands["send_command"] = ("POST", '/session/$sessionId/chromium/send_command')
-        params = {
-            'cmd': 'Page.setDownloadBehavior',
-            'params': {'behavior': 'allow', 'downloadPath': Base.TEMP_PATH}
-        }
-        browser.execute("send_command", params)
         browser.get(url)
-        Select(browser.find_element_by_name('WR1_1$Q_COD_Year_S$C1')).select_by_value(str(AD_YEAR - 1))
-        file_count = len(os.listdir(Base.TEMP_PATH))
+        Select(browser.find_element_by_name(creator.tag('year'))).select_by_value(str(AD_YEAR - 1))
 
-        for name in ['雜糧', '蔬菜', '特用作物及花卉', '果品']:
-            Select(browser.find_element_by_id('WR1_1_Q_COD_Group_C1')).select_by_value(name)
-            browser.find_element_by_class_name('CSS_ABS_NormalLink').click()
+        for name in creator.item:
+            Select(browser.find_element_by_id(creator.tag('item'))).select_by_value(name)
+            browser.find_element_by_class_name(creator.tag('submit')).click()
 
             # in staleness_of fn is check by element.is_enabled()
             # use invisibility_of_element_located no effect because arg is locator
@@ -470,20 +467,25 @@ def extract_agrcost(url, key):
             i = 1
             flag = True
             while flag:
-                element, soup = get_html_element('a.CSS_AGBS_GridLink', page_source=browser.page_source, return_soup=True)
+                element, soup = get_html_element(creator.tag('a'), page_source=browser.page_source, return_soup=True)
                 file_link = LAMBDA_DICT['file_link_list']('{}', element)
-                element = soup('#WR1_1_WG1 > tbody > tr > td:nth-of-type(3)')[1:]
+                element = soup(creator.tag('td3'))[1:]
                 name = LAMBDA_DICT['kw_list'](element)
-                print(name)
+
+                for z in zip(name, file_link):
+                    print(z[0])
+                    browser.execute_script(z[1])
+                    WebDriverWait(browser, 5).until(ec.staleness_of(browser.find_element_by_class_name('blockUI')))
 
                 present = ec.visibility_of_all_elements_located((By.CLASS_NAME, 'dxpCtrl'))
                 if present(browser):
                     i += 1
                     if i > 2:
                         break
-                    browser.find_element_by_xpath('//*[@id="WR1_1_WG1_B_A"]/tbody/tr/td/table/tbody/tr/td[9]').click()
+                    browser.find_element_by_xpath(creator.tag('td9')).click()
                     WebDriverWait(browser, 5).until(ec.staleness_of(browser.find_element_by_class_name('blockUI')))
                 else:
                     flag = False
     finally:
+        time.sleep(2)
         browser.quit()

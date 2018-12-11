@@ -24,6 +24,8 @@ class AgrstatOfficialInfoCreator(BaseCreator):
         'tr_row1': 'tr.Row > td:nth-of-type(3)',
         'tr_row2': 'tr.AlternatingRow > td:nth-of-type(3)',
         'td': 'tr.Pager > td > table > tbody > tr > td',
+        'more_page': '//tr[@class="Pager"]/td/table/tbody/tr/td[last()]/a[contains(text(), "...")]',
+        'page': '//tr[@class="Pager"]/td/table/tbody/tr/td/a[contains(text(), {})]'
     }
 
     def __init__(self):
@@ -53,9 +55,9 @@ class AgrstatOfficialInfoCreator(BaseCreator):
     def tag(cls, key) -> str:
         return cls.__SELECT_DICT[key]
 
-    @property
-    def len(self) -> int:
-        return self.__KEYWORDS_LENTH
+    @staticmethod
+    def len() -> int:
+        return AgrstatOfficialInfoCreator.__KEYWORDS_LENTH
 
     @property
     def page(self) -> str:
@@ -103,17 +105,21 @@ class ForestCreator(BaseCreator):
         'a': '#divContent > div.downloadBox > table > tbody > tr > td > a',
     }
 
-    @property
-    def len(self) -> int:
-        return self.__KEYWORDS_LENTH
+    @staticmethod
+    def len() -> int:
+        return ForestCreator.__KEYWORDS_LENTH
 
     @property
     def kw(self) -> str:
         return self.__KEYWORD
 
     @property
-    def date(self):
+    def income_date(self):
         return self.__INCOME_KEYWORD
+
+    @property
+    def wood_date(self):
+        return self.__WOOD_KEYWORD
 
     @property
     def days(self) -> list:
@@ -439,6 +445,36 @@ class PxwebCreator(BaseCreator):
     @property
     def day(self) -> str:
         return self.__SPEC_DAY
+
+    @classmethod
+    def tag(cls, key) -> str:
+        return cls.__SELECT_DICT[key]
+
+
+class AgrCostCreator(BaseCreator):
+    __DAY = '07161700'
+    __KEYWORD = '{}年期'
+    __ITEM = ['雜糧', '蔬菜', '特用作物及花卉', '果品']
+    __SELECT_DICT = {
+        'year': 'WR1_1$Q_COD_Year_S$C1',
+        'item': 'WR1_1_Q_COD_Group_C1',
+        'submit': 'CSS_ABS_NormalLink',
+        'a': 'a.CSS_AGBS_GridLink',
+        'td3': '#WR1_1_WG1 > tbody > tr > td:nth-of-type(3)',
+        'td9': '//*[@id="WR1_1_WG1_B_A"]/tbody/tr/td/table/tbody/tr/td[9]',
+    }
+
+    @property
+    def day(self) -> str:
+        return self.__DAY
+
+    @property
+    def kw(self):
+        return self.__KEYWORD
+
+    @property
+    def item(self) -> list:
+        return self.__ITEM
 
     @classmethod
     def tag(cls, key) -> str:
