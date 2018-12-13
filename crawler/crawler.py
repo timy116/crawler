@@ -32,11 +32,13 @@ from request_info_creator import (
     BliCreator as bc,
     PxwebCreator as pc,
     AgrCostCreator as acc,
+    FishYearCreator as fyc,
 )
 
 kws_d = {}
 kws_l = []
 forest_kws_l = []
+fish_year_l = []
 
 
 def start_crawler(key, url) -> None:
@@ -53,8 +55,8 @@ def start_crawler(key, url) -> None:
     # elif url.find('swcb') != -1:
     #     extract_swcb(key, url)
     #
-    if url.find('0000575') != -1:
-        extract_forest(key, url)
+    # if url.find('0000575') != -1:
+    #     extract_forest(key, url)
     #
     # elif url.find('InquireAdvance') != -1:
     #     extract_inquire_advance(key, url)
@@ -78,7 +80,10 @@ def start_crawler(key, url) -> None:
     #     extract_pxweb(key, url)
 
     # if url.find('itemNo=COI121') != -1:
-    #     extract_agrcost(url, key)
+    #     extract_agrcost(key, url)
+
+    if url.find('FishYear') != -1:
+        extract_fish_year(key, url)
 
 
 def extract_agrstat_official_info(key, url) -> None:
@@ -447,7 +452,7 @@ def extract_pxweb(key, url):
         driver.quit()
 
 
-def extract_agrcost(url, key):
+def extract_agrcost(key, url):
     if not os.path.isdir(Base.TEMP_PATH):
         os.mkdir(Base.TEMP_PATH)
 
@@ -493,3 +498,22 @@ def extract_agrcost(url, key):
     finally:
         time.sleep(2)
         browser.quit()
+
+
+def extract_fish_year(key, url):
+    fish_year_l.append(key)
+    if len(fish_year_l) == fyc.len():
+        creator = fyc()
+        flag_year, datetime_start, datetime_end = datetime_maker(spec=creator.day)
+        element = get_html_element(creator.tag('a'), method='get', creator=creator, url=url)
+        text = LAMBDA_DICT['kw_list'](element)[0]
+        keyword = creator.kw.format(flag_year - 1)
+
+        if text.find(keyword) != -1:
+            log.info(keyword, '漁業統計年報', text)
+        else:
+            if keyword < text[:7]:
+                mailhandler.set_msg(True, url, key, str(flag_year) + '年')
+            else:
+                mailhandler.set_msg(False, url, key, str(flag_year - 1) + '年')
+            err_log.warning(keyword, '漁業統計年報', text)
