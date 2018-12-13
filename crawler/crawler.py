@@ -53,8 +53,8 @@ def start_crawler(key, url) -> None:
     # elif url.find('swcb') != -1:
     #     extract_swcb(key, url)
     #
-    # if url.find('0000575') != -1:
-    #     extract_forest(key, url)
+    if url.find('0000575') != -1:
+        extract_forest(key, url)
     #
     # elif url.find('InquireAdvance') != -1:
     #     extract_inquire_advance(key, url)
@@ -187,6 +187,7 @@ def extract_forest(key, url) -> None:
                 k_f_l_d[w] = f
 
         for k, v in k_f_l_d.items():
+            print(v)
             if k == '造林面積':
                 now = time.strftime('%m%d%H%M')
                 keyword = '{}年第{}季'
@@ -208,6 +209,7 @@ def extract_forest(key, url) -> None:
                     datetime_start = month[10]
                     datetime_end = month[1]
                 sl.set_msg(datetime_start, datetime_end)
+
                 find, text = find_kw(v, format_keyword, 'ods')
                 if find:
                     log.info(format_keyword, k, text)
@@ -215,13 +217,15 @@ def extract_forest(key, url) -> None:
                     mailhandler.set_msg(False, k, url, format_keyword)
                     err_log.warning(format_keyword, k, text)
 
-            if k == '林務局森林遊樂區收入' or k == '木材市價':
+            elif k == '林務局森林遊樂區收入' or k == '木材市價':
                 flag_month, datetime_start, datetime_end = datetime_maker(day=creator.days)
                 if k == '林務局森林遊樂區收入':
                     format_keyword = creator.income_date.format(YEAR, int(flag_month)-1)
+                    find, text = find_kw(v, format_keyword, 'ods')
                 else:
                     format_keyword = creator.wood_date.format(YEAR, int(flag_month)-1)
-                find, text = find_kw(v, format_keyword, 'ods')
+                    find, text = find_kw(v, format_keyword, 'stream')
+
                 if find:
                     log.info(format_keyword, k, text)
                 else:
